@@ -20,9 +20,8 @@
     // Do any additional setup after loading the view, typically from a nib.
     
     // 是时候开始你的表演了...
-    
-    [DB.db beginTransaction];
-    
+    ZYTable(@"User").insert(@{@"name" : @"hehe"});
+    return;
     DB.table(@"t_name").where(@[self.nibName, @"=", @3]).andWhere(@"").orWhere(@"").orderBy(nil).groupBy(@"").delete().booleanValue;
     
     DB.table(@"").where(@{@"" : @3}).andWhere(@{@"":@""}).get(@"isFiend").booleanValue;
@@ -36,7 +35,7 @@
     NSArray *array = DB.table(@"luge").where(@{@"name" : @"xxxx"}).get(nil).arrayValue;
     [array count];
     
-    DB.table(@"xxx").where(@[@"name", @"=", @"xxxx", @"age", @""]).delete();
+    DB.table(@"xxx").where(@[@"name", @"=", @"xxxx", @"age", @">", @"0"]).delete();
     
     DB.table(@"").where(nil).where(nil).andWhere(nil).join(nil, nil).update(nil);
     
@@ -45,10 +44,6 @@
     ZYTable(@"").where(nil).andWhere(@{}).delete();
     
     ZYTable(@"").where(nil).update(@{});
-    
-    [DB.db rollback];
-    
-    [DB.db commit];
     
     ZYTable(@"").where(@{@"name" : @"zhangsan"}).delete();
 }
