@@ -20,11 +20,13 @@
     // Do any additional setup after loading the view, typically from a nib.
     
     // 是时候开始你的表演了...
-    ZYTable(@"User").insert(@{@"name" : @"hehe"});
+//    ZYTable(@"User").insert(@{@"name" : @"hehe", @"age" : @20, @"sex" : @"男"});
+
+    ZYTable(@"User").all();
     return;
-    DB.table(@"t_name").where(@[self.nibName, @"=", @3]).andWhere(@"").orWhere(@"").orderBy(nil).groupBy(@"").delete().booleanValue;
+    return;
     
-    DB.table(@"").where(@{@"" : @3}).andWhere(@{@"":@""}).get(@"isFiend").booleanValue;
+    DB.table(@"").where(@{@"" : @3}).andWhere(@{@"":@""}).all();
     
     DB.table(@"").join(@"b", @{@"name" : @"name", @"" : @""}).insert(@{});
     
@@ -32,7 +34,7 @@
     
     DB.table(@"luge").insert(@{@"name" : @"xxxx", @"age" : @2}).booleanValue;
     
-    NSArray *array = DB.table(@"luge").where(@{@"name" : @"xxxx"}).get(nil).arrayValue;
+    NSArray *array = DB.table(@"luge").where(@{@"name" : @"xxxx"}).all().arrayValue;
     [array count];
     
     DB.table(@"xxx").where(@[@"name", @"=", @"xxxx", @"age", @">", @"0"]).delete();
@@ -46,6 +48,16 @@
     ZYTable(@"").where(nil).update(@{});
     
     ZYTable(@"").where(@{@"name" : @"zhangsan"}).delete();
+    
+    DB.table(@"").where(@{}).groupBy(@"name").select(@[@"name as a"]).having(@{@"a" : @"name"}).limit(@"3").first(nil).dictValue;
+    
+    ZYTable(@"").where(@{@"id" : @100}).first(nil);
+    
+    DB.table(nil).join(@"b", @{@"a" : @"b"}).select(@[@"a.name", @"b.name"]).orderBy(@"", @"ASC").all().arrayValue;
+    
+    NSObject.table.where(@{}).select(@[]).all();
+    
+    [[NSObject new] save];
 }
 
 

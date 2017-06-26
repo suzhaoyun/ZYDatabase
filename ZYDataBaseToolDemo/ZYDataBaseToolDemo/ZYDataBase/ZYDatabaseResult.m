@@ -10,4 +10,9 @@
 
 @implementation ZYDatabaseResult
 
++ (instancetype)databaseResult:(id)obj
+{
+    return nil;
+}
+
 @end

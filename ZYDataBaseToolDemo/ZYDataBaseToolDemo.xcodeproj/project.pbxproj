@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		580B1C741F00B89800592CB8 /* ZYDatabaseModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 580B1C731F00B89800592CB8 /* ZYDatabaseModel.m */; };
 		580FFE931EFE3F4F002A422D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFE921EFE3F4F002A422D /* main.m */; };
 		580FFE961EFE3F4F002A422D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFE951EFE3F4F002A422D /* AppDelegate.m */; };
 		580FFE991EFE3F4F002A422D /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFE981EFE3F4F002A422D /* ViewController.m */; };
@@ -25,6 +26,7 @@
 		580FFEDD1EFE4196002A422D /* libsqlite3.0.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 580FFEDC1EFE4196002A422D /* libsqlite3.0.tbd */; };
 		580FFEE01EFE4C2A002A422D /* ZYDatabaseResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFEDF1EFE4C2A002A422D /* ZYDatabaseResult.m */; };
 		580FFEE51EFE584E002A422D /* ZYDatabaseType.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFEE41EFE584E002A422D /* ZYDatabaseType.m */; };
+		589986B11EFFAA980063A5FB /* CreateTable.sql in Resources */ = {isa = PBXBuildFile; fileRef = 589986B01EFFAA980063A5FB /* CreateTable.sql */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +47,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		580B1C721F00B89800592CB8 /* ZYDatabaseModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZYDatabaseModel.h; sourceTree = "<group>"; };
+		580B1C731F00B89800592CB8 /* ZYDatabaseModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZYDatabaseModel.m; sourceTree = "<group>"; };
 		580FFE8E1EFE3F4F002A422D /* ZYDataBaseToolDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZYDataBaseToolDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		580FFE921EFE3F4F002A422D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		580FFE941EFE3F4F002A422D /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -81,6 +85,7 @@
 		580FFEE31EFE584E002A422D /* ZYDatabaseType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZYDatabaseType.h; sourceTree = "<group>"; };
 		580FFEE41EFE584E002A422D /* ZYDatabaseType.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZYDatabaseType.m; sourceTree = "<group>"; };
 		580FFEE81EFE5CB6002A422D /* ZYDatabase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZYDatabase.h; sourceTree = "<group>"; };
+		589986B01EFFAA980063A5FB /* CreateTable.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CreateTable.sql; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +151,7 @@
 		580FFE911EFE3F4F002A422D /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				589986B01EFFAA980063A5FB /* CreateTable.sql */,
 				580FFE9A1EFE3F4F002A422D /* Main.storyboard */,
 				580FFE9D1EFE3F4F002A422D /* Assets.xcassets */,
 				580FFE9F1EFE3F4F002A422D /* LaunchScreen.storyboard */,
@@ -182,6 +188,8 @@
 				580FFEDF1EFE4C2A002A422D /* ZYDatabaseResult.m */,
 				580FFEE31EFE584E002A422D /* ZYDatabaseType.h */,
 				580FFEE41EFE584E002A422D /* ZYDatabaseType.m */,
+				580B1C721F00B89800592CB8 /* ZYDatabaseModel.h */,
+				580B1C731F00B89800592CB8 /* ZYDatabaseModel.m */,
 				580FFEE81EFE5CB6002A422D /* ZYDatabase.h */,
 				580FFEC81EFE4160002A422D /* fmdb */,
 			);
@@ -323,6 +331,7 @@
 			files = (
 				580FFEDA1EFE4160002A422D /* Info.plist in Resources */,
 				580FFEA11EFE3F4F002A422D /* LaunchScreen.storyboard in Resources */,
+				589986B11EFFAA980063A5FB /* CreateTable.sql in Resources */,
 				580FFE9E1EFE3F4F002A422D /* Assets.xcassets in Resources */,
 				580FFE9C1EFE3F4F002A422D /* Main.storyboard in Resources */,
 			);
@@ -354,6 +363,7 @@
 				580FFEE51EFE584E002A422D /* ZYDatabaseType.m in Sources */,
 				580FFED81EFE4160002A422D /* FMDatabaseQueue.m in Sources */,
 				580FFE961EFE3F4F002A422D /* AppDelegate.m in Sources */,
+				580B1C741F00B89800592CB8 /* ZYDatabaseModel.m in Sources */,
 				580FFE931EFE3F4F002A422D /* main.m in Sources */,
 				580FFED51EFE4160002A422D /* FMDatabase.m in Sources */,
 				580FFED71EFE4160002A422D /* FMDatabasePool.m in Sources */,
@@ -593,6 +603,7 @@
 				580FFEBD1EFE3F4F002A422D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		580FFEBE1EFE3F4F002A422D /* Build configuration list for PBXNativeTarget "ZYDataBaseToolDemoTests" */ = {
 			isa = XCConfigurationList;
@@ -601,6 +612,7 @@
 				580FFEC01EFE3F4F002A422D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		580FFEC11EFE3F4F002A422D /* Build configuration list for PBXNativeTarget "ZYDataBaseToolDemoUITests" */ = {
 			isa = XCConfigurationList;
@@ -609,6 +621,7 @@
 				580FFEC31EFE3F4F002A422D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

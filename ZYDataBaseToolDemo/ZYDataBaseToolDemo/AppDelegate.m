@@ -7,6 +7,7 @@
 //
 
 #import "AppDelegate.h"
+#import "ZYDatabase.h"
 
 @interface AppDelegate ()
 
@@ -16,7 +17,9 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    
+    [DB createDatabase:@"mytest.sqlite" createTableSqlFilePath:[[NSBundle mainBundle] pathForResource:@"CreateTable.sql" ofType:nil]];
+    
     return YES;
 }
 

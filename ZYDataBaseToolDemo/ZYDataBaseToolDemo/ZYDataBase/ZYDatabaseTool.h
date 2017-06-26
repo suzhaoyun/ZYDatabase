@@ -4,8 +4,8 @@
 //
 //  Created by ZYSu on 2017/6/24.
 //  Copyright © 2017年 BeiJingLongBei. All rights reserved.
-//  仿laravel做的一个面向对象的链式数据库操作工具 暂时只支持单数据库
-//  内部使用FMDB的FMDatabaseQueue实现 是保证线程安全的
+//  仿Laravel框架做的一个面向对象的sql语句api (暂时只支持单数据库)
+//  内部使用FMDatabaseQueue实现, 是保证线程安全的
 
 #import <Foundation/Foundation.h>
 
@@ -16,6 +16,7 @@ typedef ZYDatabaseTool * (^OneObjectType)(id args);
 typedef ZYDatabaseTool * (^OneDictType)(NSDictionary *args);
 typedef ZYDatabaseTool * (^OneArrayType)(NSArray *args);
 typedef ZYDatabaseTool * (^JoinType)(NSString *tableName, id args);
+typedef ZYDatabaseTool * (^OrderByType)(NSString *column, NSString *sortType);
 typedef ZYDatabaseResult * (^ExecuteType)();
 typedef ZYDatabaseResult * (^ExecuteDictType)(NSDictionary *args);
 typedef ZYDatabaseResult * (^ExecuteStringType)(NSString *args);
@@ -39,7 +40,7 @@ typedef ZYDatabaseResult * (^ExecuteStringType)(NSString *args);
  #warning : 客户端每次启动都会执行sql 所以创表语句中一定要添加IF NOT EXISTS
  */
 
-- (void)createDatabase:(NSString *)databaseName createTableSqlFile:(NSString *)filepath;
+- (void)createDatabase:(NSString *)databaseName createTableSqlFilePath:(NSString *)filepath;
 
 #pragma mark - 执行sql前先指定要操作的表格
 
@@ -90,11 +91,10 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
 
 /**
  获取所有的结果
- 参数可以传nil表示获取全部字段.  也可以传入想要获取的字段
- example get(nil)  get(@"name")
+ example: all()
  */
 
-@property (nonatomic, copy, readonly) ExecuteStringType get;
+@property (nonatomic, copy, readonly) ExecuteType all;
 
 #pragma mark -  条件函数
 
@@ -116,6 +116,13 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
  */
 
 @property (nonatomic, copy, readonly) OneObjectType andWhere;
+
+/**
+ 用于设置别名, 筛选字段. 如果不设置默认为select *
+    参数 : @[@"name as a", @"sex as mysex", @"age"]
+ */
+
+@property (nonatomic, copy, readonly) OneArrayType select;
 
 /**
  参数和where完全一致
@@ -168,13 +175,14 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
 
 /**
  排序操作
- 参数为array
- orderBy(@[@"name", @"ASC", @"sex", @"DESC"])
- 所以参数必须成对出现,必须指定排序类型
- 不能使用字典方式. 字典是无序的, 不能保证排序字段的先后
+ 参数为(a, b)
+ orderBy(@"name", @"ASC")
+ 所以参数必须成对出现,第二个参数可以指定排序类型
+ 可以使用多次orderBy 已保证先后顺序  orderBy(@"a", @"ASC").orderBy(@"b", @"DESC")
+ 这样会先已a排序,再已b字段排序  如果设置两次a, 会以最后一次的排序方式为准!
  */
 
-@property (nonatomic, copy, readonly) OneArrayType orderBy;
+@property (nonatomic, copy, readonly) OrderByType orderBy;
 
 /**
  限制查询出来的条数
