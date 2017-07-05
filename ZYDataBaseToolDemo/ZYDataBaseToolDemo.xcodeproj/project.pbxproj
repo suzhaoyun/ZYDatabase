@@ -24,9 +24,10 @@
 		580FFED91EFE4160002A422D /* FMResultSet.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFED31EFE4160002A422D /* FMResultSet.m */; };
 		580FFEDA1EFE4160002A422D /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 580FFED41EFE4160002A422D /* Info.plist */; };
 		580FFEDD1EFE4196002A422D /* libsqlite3.0.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 580FFEDC1EFE4196002A422D /* libsqlite3.0.tbd */; };
-		580FFEE01EFE4C2A002A422D /* ZYDatabaseResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFEDF1EFE4C2A002A422D /* ZYDatabaseResult.m */; };
 		580FFEE51EFE584E002A422D /* ZYDatabaseType.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFEE41EFE584E002A422D /* ZYDatabaseType.m */; };
 		589986B11EFFAA980063A5FB /* CreateTable.sql in Resources */ = {isa = PBXBuildFile; fileRef = 589986B01EFFAA980063A5FB /* CreateTable.sql */; };
+		58E6F29D1F0CA89E00BDBD35 /* ZYDatabaseResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 58E6F29C1F0CA89E00BDBD35 /* ZYDatabaseResult.m */; };
+		58E6F2A01F0CABBF00BDBD35 /* NSDictionary+ZYSafe.m in Sources */ = {isa = PBXBuildFile; fileRef = 58E6F29F1F0CABBF00BDBD35 /* NSDictionary+ZYSafe.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,12 +81,14 @@
 		580FFED31EFE4160002A422D /* FMResultSet.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FMResultSet.m; sourceTree = "<group>"; };
 		580FFED41EFE4160002A422D /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		580FFEDC1EFE4196002A422D /* libsqlite3.0.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.0.tbd; path = usr/lib/libsqlite3.0.tbd; sourceTree = SDKROOT; };
-		580FFEDE1EFE4C2A002A422D /* ZYDatabaseResult.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZYDatabaseResult.h; sourceTree = "<group>"; };
-		580FFEDF1EFE4C2A002A422D /* ZYDatabaseResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZYDatabaseResult.m; sourceTree = "<group>"; };
 		580FFEE31EFE584E002A422D /* ZYDatabaseType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZYDatabaseType.h; sourceTree = "<group>"; };
 		580FFEE41EFE584E002A422D /* ZYDatabaseType.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZYDatabaseType.m; sourceTree = "<group>"; };
 		580FFEE81EFE5CB6002A422D /* ZYDatabase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZYDatabase.h; sourceTree = "<group>"; };
 		589986B01EFFAA980063A5FB /* CreateTable.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CreateTable.sql; sourceTree = "<group>"; };
+		58E6F29B1F0CA89E00BDBD35 /* ZYDatabaseResult.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZYDatabaseResult.h; sourceTree = "<group>"; };
+		58E6F29C1F0CA89E00BDBD35 /* ZYDatabaseResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZYDatabaseResult.m; sourceTree = "<group>"; };
+		58E6F29E1F0CABBF00BDBD35 /* NSDictionary+ZYSafe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSDictionary+ZYSafe.h"; sourceTree = "<group>"; };
+		58E6F29F1F0CABBF00BDBD35 /* NSDictionary+ZYSafe.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSDictionary+ZYSafe.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -184,8 +187,10 @@
 			children = (
 				580FFEC51EFE3F68002A422D /* ZYDatabaseTool.h */,
 				580FFEC61EFE3F68002A422D /* ZYDatabaseTool.m */,
-				580FFEDE1EFE4C2A002A422D /* ZYDatabaseResult.h */,
-				580FFEDF1EFE4C2A002A422D /* ZYDatabaseResult.m */,
+				58E6F29B1F0CA89E00BDBD35 /* ZYDatabaseResult.h */,
+				58E6F29C1F0CA89E00BDBD35 /* ZYDatabaseResult.m */,
+				58E6F29E1F0CABBF00BDBD35 /* NSDictionary+ZYSafe.h */,
+				58E6F29F1F0CABBF00BDBD35 /* NSDictionary+ZYSafe.m */,
 				580FFEE31EFE584E002A422D /* ZYDatabaseType.h */,
 				580FFEE41EFE584E002A422D /* ZYDatabaseType.m */,
 				580B1C721F00B89800592CB8 /* ZYDatabaseModel.h */,
@@ -358,7 +363,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				580FFEE01EFE4C2A002A422D /* ZYDatabaseResult.m in Sources */,
 				580FFE991EFE3F4F002A422D /* ViewController.m in Sources */,
 				580FFEE51EFE584E002A422D /* ZYDatabaseType.m in Sources */,
 				580FFED81EFE4160002A422D /* FMDatabaseQueue.m in Sources */,
@@ -367,9 +371,11 @@
 				580FFE931EFE3F4F002A422D /* main.m in Sources */,
 				580FFED51EFE4160002A422D /* FMDatabase.m in Sources */,
 				580FFED71EFE4160002A422D /* FMDatabasePool.m in Sources */,
+				58E6F29D1F0CA89E00BDBD35 /* ZYDatabaseResult.m in Sources */,
 				580FFED91EFE4160002A422D /* FMResultSet.m in Sources */,
 				580FFEC71EFE3F68002A422D /* ZYDatabaseTool.m in Sources */,
 				580FFED61EFE4160002A422D /* FMDatabaseAdditions.m in Sources */,
+				58E6F2A01F0CABBF00BDBD35 /* NSDictionary+ZYSafe.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

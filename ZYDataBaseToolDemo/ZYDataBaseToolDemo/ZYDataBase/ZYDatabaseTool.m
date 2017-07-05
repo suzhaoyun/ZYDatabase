@@ -7,7 +7,6 @@
 //
 
 #import "ZYDatabaseTool.h"
-#import "ZYDatabaseResult.h"
 #import "FMDB.h"
 #import "ZYDatabaseType.h"
 
@@ -66,7 +65,7 @@ ZYDatabaseTool * ZYTable(NSString *tableName)
 
 #pragma mark - 执行函数(直接执行, 返回ZYDatabaseResult)
 
-- (ExecuteDictType)insert
+- (InsertUpdateType)insert
 {
     if (_insert == nil) {
         __weak typeof(self) weakSelf = self;
@@ -79,7 +78,7 @@ ZYDatabaseTool * ZYTable(NSString *tableName)
                     NSLog(@"成功执行插入语句: %@", sql);
                 }
             }
-            return [ZYDatabaseResult databaseResult:@(result)];
+            return result;
         };
     }
     return _insert;
@@ -118,41 +117,34 @@ ZYDatabaseTool * ZYTable(NSString *tableName)
     return result;
 }
 
-- (ExecuteStringType)first
+- (FirstType)first
 {
     if (_first == nil) {
-        __weak typeof(self) weakSelf = self;
-        _first = ^(NSString *str){
-            return [ZYDatabaseResult new];
-        };
+//        __weak typeof(self) weakSelf = self;
+//        _first = ^(NSString *str){
+//            return [NSObject new];
+//        };
     }
     return _first;
 }
 
-- (ExecuteType)all
+- (MutipleType)all
 {
     if (_all == nil) {
         __weak typeof(self) weakSelf = self;
-        _all = ^{
-            if (self.tableName == nil) {
-                return [ZYDatabaseResult new];
-            }
-            NSString *sql = [NSString stringWithFormat:@"%@* FROM %@;", SelectConst, weakSelf.tableName];
-            __block FMResultSet *result = nil;
-            if (weakSelf.transationDB) {
-                result = [weakSelf.transationDB executeQuery:sql];
-            }else{
-                [weakSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-                    result = [db executeQuery:sql];
-                    [result close];
-                }];
-            }
-            
-            NSMutableArray *arrM;
-//            = [weakSelf getResult:result];
-            
-            return [ZYDatabaseResult databaseResult:arrM];
-        };
+        NSString *sql = [NSString stringWithFormat:@"%@* FROM %@;", SelectConst, weakSelf.tableName];
+        __block FMResultSet *result = nil;
+        if (weakSelf.transationDB) {
+            result = [weakSelf.transationDB executeQuery:sql];
+        }else{
+            [weakSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
+                result = [db executeQuery:sql];
+                [result close];
+            }];
+        }
+        
+//        NSMutableArray *arrM;
+
     }
     return _all;
 }

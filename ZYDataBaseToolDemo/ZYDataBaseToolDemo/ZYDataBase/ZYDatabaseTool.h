@@ -11,15 +11,18 @@
 
 @class ZYDatabaseTool, FMDatabaseQueue, ZYDatabaseResult;
 
-typedef ZYDatabaseTool * (^OneStringType)(NSString *args);
-typedef ZYDatabaseTool * (^OneObjectType)(id args);
-typedef ZYDatabaseTool * (^OneDictType)(NSDictionary *args);
-typedef ZYDatabaseTool * (^OneArrayType)(NSArray *args);
-typedef ZYDatabaseTool * (^JoinType)(NSString *tableName, id args);
-typedef ZYDatabaseTool * (^OrderByType)(NSString *column, NSString *sortType);
-typedef ZYDatabaseResult * (^ExecuteType)();
-typedef ZYDatabaseResult * (^ExecuteDictType)(NSDictionary *args);
-typedef ZYDatabaseResult * (^ExecuteStringType)(NSString *args);
+typedef ZYDatabaseTool  * (^OneStringType)(NSString *args);
+typedef ZYDatabaseTool  * (^OneObjectType)(id args);
+typedef ZYDatabaseTool  * (^OneDictType)(NSDictionary *args);
+typedef ZYDatabaseTool  * (^OneArrayType)(NSArray *args);
+typedef ZYDatabaseTool  * (^JoinType)(NSString *tableName, id args);
+typedef ZYDatabaseTool  * (^OrderByType)(NSString *column, NSString *sortType);
+typedef BOOL (^DeleteType)();
+typedef BOOL (^InsertUpdateType)(NSDictionary *args);
+typedef NSDictionary * (^FirstType)();
+typedef ZYDatabaseResult * (^FirstMapType)(NSString *column);
+typedef NSArray<NSDictionary *> * (^MutipleType)();
+typedef NSArray * (^MutaipleMapType)(id (^)(NSDictionary *dict));
 
 @interface ZYDatabaseTool : NSObject
 
@@ -67,34 +70,70 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
  如果要清空某个字段 可以使用[NSNull null] 或者@""
  */
 
-@property (nonatomic, copy, readonly) ExecuteDictType insert;
+@property (nonatomic, copy, readonly) InsertUpdateType insert;
 
 /**
  example update(@{@"数据库字段" : @"插入的数据", ...})
+ 如果要清空某个字段 可以使用[NSNull null] 或者@""
  */
 
-@property (nonatomic, copy, readonly) ExecuteDictType update;
+@property (nonatomic, copy, readonly) InsertUpdateType update;
 
 /**
  直接删除某条记录
  */
 
-@property (nonatomic, copy, readonly) ExecuteType delete;
+@property (nonatomic, copy, readonly) DeleteType delete;
 
 /**
  获取一条查询结果
  参数可以传nil表示获取全部字段.  也可以传入想要获取的字段
  example first(nil)  first(@"name")
+ return NSDictionary  NSObject
  */
 
-@property (nonatomic, copy, readonly) ExecuteStringType first;
+@property (nonatomic, copy, readonly) FirstType first;
+
+
+/**
+ 过滤函数  可以直接指定列名 来获取指定列的值
+    return: ZYDatabaseResult 这个类可以用来快速获取指定类型的值
+    example : first_map(@"name").stringValue 
+              first_map(@"isfriend").boolValue
+ */
+@property (nonatomic, copy, readonly) FirstMapType first_map;
 
 /**
  获取所有的结果
  example: all()
+ return NSArray<NSDictionary>
  */
 
-@property (nonatomic, copy, readonly) ExecuteType all;
+@property (nonatomic, copy, readonly) MutipleType all;
+
+/**
+ 过滤函数. 可以对每一列的结果进行自定义, 最终返回一个数组里
+ example : NSArray *rs = ZYTable(@"User").all_map(^id(NSDictionary *obj) {
+                return [obj objectForKey:@"name"];
+           });
+    这样可以在rs数组中得到的都是name了
+    最常用的操作 : 可以用来字典转模型
+ */
+@property (nonatomic, copy, readonly) MutaipleMapType all_map;
+
+/**
+ 获取所有的结果 (去除重复数据)
+ distinct用法 : 跟在select后面, select 后面的字段会被指定为判断重复的依据
+ example: select distinct a, b from xx; 会把a和b两列的值作为是否重复的判断标准
+ return NSArray<NSDictionary>
+ */
+
+@property (nonatomic, copy, readonly) MutipleType distinct;
+
+/**
+ 同all_map用法保持一致
+ */
+@property (nonatomic, copy, readonly) MutaipleMapType distinct_map;
 
 #pragma mark -  条件函数
 
@@ -120,9 +159,10 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
 /**
  用于设置别名, 筛选字段. 如果不设置默认为select *
     参数 : @[@"name as a", @"sex as mysex", @"age"]
+    或者  @"name as a, sex as mysex, age"
  */
 
-@property (nonatomic, copy, readonly) OneArrayType select;
+@property (nonatomic, copy, readonly) OneObjectType select;
 
 /**
  参数和where完全一致
