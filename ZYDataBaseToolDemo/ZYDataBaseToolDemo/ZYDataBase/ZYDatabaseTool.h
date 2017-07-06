@@ -17,6 +17,7 @@ typedef ZYDatabaseTool  * (^OneDictType)(NSDictionary *args);
 typedef ZYDatabaseTool  * (^OneArrayType)(NSArray *args);
 typedef ZYDatabaseTool  * (^JoinType)(NSString *tableName, id args);
 typedef ZYDatabaseTool  * (^OrderByType)(NSString *column, NSString *sortType);
+
 typedef BOOL (^DeleteType)();
 typedef BOOL (^InsertUpdateType)(NSDictionary *args);
 typedef NSDictionary * (^FirstType)();
@@ -46,15 +47,6 @@ typedef NSArray * (^MutaipleMapType)(id (^)(NSDictionary *dict));
 - (void)createDatabase:(NSString *)databaseName createTableSqlFilePath:(NSString *)filepath;
 
 #pragma mark - 执行sql前先指定要操作的表格
-
-/**
- 便捷函数 等价与 [ZYDatabaseTool sharedInstace].table(@"tableName")
-
- @param tableName 表格名
- @return ZYDatabaseTool
- */
-
-ZYDatabaseTool * ZYTable(NSString *tableName);
 
 /**
  指定操作的表格!!! 最好先制定要操作的表格再进行增删改查操作
@@ -146,6 +138,10 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
     @">"  @"<" @"LIKE" @"IN" @"=" ...
  NSDictionary : 
     这种传值方式会默认被理解为 @"="
+ NSString : 自由的定义sql语句
+    这种也可以制作面向对象的APi, 但是提示不太友好 就放弃了.
+    适用于聚合条件
+        例如where(@"a = 3 OR b = 6").orWhere(@"a = 4 AND b = 7").andWhere(@"c = 3 OR a = 3")
  */
 
 @property (nonatomic, copy, readonly) OneObjectType where;
@@ -155,7 +151,6 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
  */
 
 @property (nonatomic, copy, readonly) OneObjectType andWhere;
-
 /**
  用于设置别名, 筛选字段. 如果不设置默认为select *
     参数 : @[@"name as a", @"sex as mysex", @"age"]
@@ -170,7 +165,6 @@ ZYDatabaseTool * ZYTable(NSString *tableName);
  */
 
 @property (nonatomic, copy, readonly) OneObjectType orWhere;
-
 /**
  参数和where一致  
     having可以对分组数据进行条件筛选 where不能

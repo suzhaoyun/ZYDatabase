@@ -10,14 +10,30 @@
 #import "FMDB.h"
 #import "ZYDatabaseType.h"
 
+//处理日志打印在正式环境下的资源消耗问题
+#ifdef DEBUG
+#define ZYLog(...) NSLog(__VA_ARGS__)
+#else
+#define ZYLog(...)
+#endif
+
+#define WeakSelf __weak typeof(self) weakSelf = self;
+#define StrongSelf __strong typeof(weakSelf) strongSelf = weakSelf;
+
 @interface ZYDatabaseTool ()
 @property (nonatomic, copy) NSString *tableName;
 @property (nonatomic, weak) FMDatabase * transationDB;
+@property (nonatomic, strong) NSMutableArray *whereConditions;
 @end
 
 @implementation ZYDatabaseTool
 @synthesize table = _table;
 @synthesize insert = _insert;
+@synthesize update = _update;
+@synthesize delete = _delete;
+@synthesize where = _where;
+@synthesize andWhere = _andWhere;
+@synthesize orWhere = _orWhere;
 @synthesize first = _first;
 @synthesize all = _all;
 
@@ -46,17 +62,13 @@
 
 #pragma mark - 执行sql前先指定要操作的表格
 
-ZYDatabaseTool * ZYTable(NSString *tableName)
-{
-    return [ZYDatabaseTool sharedInstace].table(tableName);
-}
-
 - (OneStringType)table
 {
     if (_table == nil) {
-        __weak typeof(self) weakSelf = self;
+        WeakSelf
         _table = ^(NSString *str){
-            weakSelf.tableName = str;
+            StrongSelf
+            strongSelf.tableName = str;
             return weakSelf;
         };
     }
@@ -65,18 +77,19 @@ ZYDatabaseTool * ZYTable(NSString *tableName)
 
 #pragma mark - 执行函数(直接执行, 返回ZYDatabaseResult)
 
+/** 插入方法 */
 - (InsertUpdateType)insert
 {
     if (_insert == nil) {
-        __weak typeof(self) weakSelf = self;
+        WeakSelf
         _insert = ^(NSDictionary *args){
+            StrongSelf
             BOOL result = NO;
-            if (args.count) {
-                NSString *sql = [weakSelf getInsertSqlWithArgs:args];
-                result = [weakSelf executeUpdate:sql];
-                if (result){
-                    NSLog(@"成功执行插入语句: %@", sql);
-                }
+            if (args.count > 0) {
+                NSString *sql = [strongSelf getInsertSqlWithArgs:args];
+                result = [strongSelf executeUpdate:sql];
+            }else{
+                ZYLog(@"插入失败, 参数不能为空!!");
             }
             return result;
         };
@@ -87,21 +100,80 @@ ZYDatabaseTool * ZYTable(NSString *tableName)
 - (NSString *)getInsertSqlWithArgs:(NSDictionary *)args
 {
     NSAssert(self.tableName != nil, @"请先指定要操作的表...");
-    NSMutableString *sql = [NSMutableString stringWithFormat:@""];
+    NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@ ", InsertConst, self.tableName];
     NSMutableArray *values = [NSMutableArray array];
     NSMutableArray *sqlArgs = [NSMutableArray array];
     [args enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         [values addObject:[NSString stringWithFormat:@"'%@'", obj]];
         [sqlArgs addObject:key];
     }];
-    [sql appendString:InsertConst];
-    [sql appendFormat:@"%@ ",self.tableName];
     [sql appendFormat:@"(%@) ", [sqlArgs componentsJoinedByString:@","]];
     [sql appendFormat:@"VALUES (%@);", [values componentsJoinedByString:@","]];
+    ZYLog(@"%@", sql);
     return sql;
 }
 
-#pragma mark - 简化方法
+/** 更新方法 */
+- (InsertUpdateType)update
+{
+    if (_update == nil) {
+        WeakSelf
+        _update = ^(NSDictionary *args){
+            StrongSelf
+            BOOL result = NO;
+            if (args.count > 0) {
+                result = [strongSelf executeUpdate:[strongSelf getUpdateSql:args]];
+            }else{
+                ZYLog(@"更新失败, 参数不能为空");
+            }
+            return NO;
+        };
+    }
+    return _update;
+}
+
+- (NSString *)getUpdateSql:(NSDictionary *)args
+{
+    NSAssert(self.tableName != nil, @"请先指定要操作的表...");
+    NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@ SET ", UpdateConst, self.tableName];
+    NSArray *keys = args.allKeys;
+    for (NSUInteger i = 0; i < keys.count; i++) {
+        NSString *key = keys[i];
+        [sql appendFormat:@"%@ = '%@'", key, [args objectForKey:key]];
+        if (i < keys.count - 1) {
+            [sql appendString:@", "];
+        }else{
+            [sql appendString:@" "];
+        }
+    }
+    
+    // 添加筛选条件
+    [sql appendFormat:@"%@;", [self getWhereSql]];
+    ZYLog(@"%@", sql);
+    return sql;
+}
+
+/** 删除方法 */
+- (DeleteType)delete
+{
+    if (_delete == nil) {
+        WeakSelf
+        _delete = ^{
+            StrongSelf
+            return [strongSelf executeUpdate:[strongSelf getDeleteSql]];
+        };
+    }
+    return _delete;
+}
+
+- (NSString *)getDeleteSql
+{
+    NSAssert(self.tableName != nil, @"请先指定要操作的表...");
+    NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@ ", DeleteConst, self.tableName];
+    [sql appendFormat:@"%@;", [self getWhereSql]];
+    ZYLog(@"%@", sql);
+    return sql;
+}
 
 - (BOOL)executeUpdate:(NSString *)sql,...
 {
@@ -117,37 +189,142 @@ ZYDatabaseTool * ZYTable(NSString *tableName)
     return result;
 }
 
-- (FirstType)first
+/** where条件 */
+- (OneObjectType)where
 {
-    if (_first == nil) {
-//        __weak typeof(self) weakSelf = self;
-//        _first = ^(NSString *str){
-//            return [NSObject new];
-//        };
+    if (_where == nil) {
+        WeakSelf
+        _where = ^(id args){
+            StrongSelf
+            if (args){
+                [strongSelf.whereConditions addObject:@{@"Type" : @"AND", @"Content" : args}];
+            }
+            return strongSelf;
+        };
     }
-    return _first;
+    return _where;
 }
 
-- (MutipleType)all
+- (OneObjectType)andWhere
 {
-    if (_all == nil) {
-        __weak typeof(self) weakSelf = self;
-        NSString *sql = [NSString stringWithFormat:@"%@* FROM %@;", SelectConst, weakSelf.tableName];
-        __block FMResultSet *result = nil;
-        if (weakSelf.transationDB) {
-            result = [weakSelf.transationDB executeQuery:sql];
-        }else{
-            [weakSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-                result = [db executeQuery:sql];
-                [result close];
-            }];
+    if (_andWhere == nil) {
+        WeakSelf
+        _andWhere = ^(id args){
+            StrongSelf
+            if (args){
+                [strongSelf.whereConditions addObject:@{@"Type" : @"AND", @"Content" : args}];
+            }
+            return strongSelf;
+        };
+    }
+    return _andWhere;
+}
+
+- (OneObjectType)orWhere
+{
+    if (_orWhere == nil) {
+        WeakSelf
+        _orWhere = ^(id args){
+            StrongSelf
+            if (args){
+                [strongSelf.whereConditions addObject:@{@"Type" : @"OR", @"Content" : args}];
+            }
+            return strongSelf;
+        };
+    }
+    return _orWhere;
+}
+
+- (NSString *)getWhereSql
+{
+    NSMutableString *sql = [NSMutableString string];
+    if (self.whereConditions.count == 0) {
+        return sql;
+    }
+    
+    // 纠正条件顺序  防止第一个语句有多个条件但第一个条件是OR
+    [self.whereConditions sortUsingComparator:^NSComparisonResult(NSDictionary * _Nonnull obj1, NSDictionary *  _Nonnull obj2) {
+        NSString *type1 = [obj1 objectForKey:@"Type"];
+        NSString *type2 = [obj2 objectForKey:@"Type"];
+        
+        if ([type1 isEqualToString:@"AND"] && ![type2 isEqualToString:@"AND"]) {
+            return NSOrderedAscending;
+        }
+        else if (![type1 isEqualToString:@"AND"] && [type2 isEqualToString:@"AND"]){
+            return NSOrderedDescending;
+        }
+        else{
+            return NSOrderedSame;
+        }
+
+    }];
+    
+    [sql appendString:WhereConst];
+    
+    for (NSUInteger  i = 0; i < self.whereConditions.count; i++) {
+        NSDictionary *whereArgs = self.whereConditions[i];
+        NSString *type = [whereArgs objectForKey:@"Type"];
+        
+        id args = [whereArgs objectForKey:@"Content"];
+        
+        NSMutableString *contentSql = [NSMutableString string];
+        
+        if ([args isKindOfClass:[NSDictionary class]]) {
+            NSDictionary *dict = args;
+            NSArray *allkeys = dict.allKeys;
+            for (NSUInteger i = 0; i < allkeys.count; i++) {
+                NSString *key = allkeys[i];
+                [contentSql appendFormat:@"%@ = '%@'", key, [dict objectForKey:key]];
+                if (i < allkeys.count - 1) {
+                    [contentSql appendString:@" AND "];
+                }
+            }
+        }
+        else if ([args isKindOfClass:[NSArray class]]) {
+            NSArray *arr = args;
+            NSAssert(arr.count % 3 == 0, @"%@where参数有问题,参数个数必须是3的倍数", arr);
+            if (arr.count == 0) {
+                continue;
+            }
+            
+            for (NSUInteger i = 0; i < arr.count; i++) {
+                NSInteger index = (i + 1) % 3;
+                if (index == 1) {
+                    [contentSql appendFormat:@"%@ ", arr[i]];
+                }
+                else if (index == 2){
+                    [contentSql appendFormat:@"%@ ", arr[i]];
+                }
+                else{
+                    [contentSql appendFormat:@"'%@'", arr[i]];
+                    
+                    if (i < arr.count - 1) {
+                        [contentSql appendString:@" AND "];
+                    }
+                }
+            }
+        }
+        else if ([args isKindOfClass:[NSString class]]){
+            NSString *strArgs = args;
+            if (strArgs.length) {
+                [contentSql appendFormat:@"%@", strArgs];
+            }
         }
         
-//        NSMutableArray *arrM;
-
+        // 添加类型符号
+        if (contentSql.length > 0) {
+            if (i != 0) {
+                [sql appendFormat:@" %@ ", type];
+            }
+            [sql appendFormat:@"(%@)", contentSql];
+        }
     }
-    return _all;
+    
+    return sql;
 }
+
+#pragma mark - 简化方法
+
 
 - (NSMutableArray *)getResult:(FMResultSet *)set
 {
@@ -178,6 +355,14 @@ ZYDatabaseTool * ZYTable(NSString *tableName)
         block?block(rollback):NULL;
         self.transationDB = nil;
     }];
+}
+
+- (NSMutableArray *)whereConditions
+{
+    if (_whereConditions == nil) {
+        _whereConditions = [NSMutableArray array];
+    }
+    return _whereConditions;
 }
 
 @end

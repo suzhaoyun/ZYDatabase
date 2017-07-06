@@ -20,16 +20,19 @@
     // Do any additional setup after loading the view, typically from a nib.
     
     // 是时候开始你的表演了...
-//    ZYTable(@"User").insert(@{@"name" : @"hehe", @"age" : @20, @"sex" : @"男"});
+//     DB.table(@"User").insert(@{@"name" : @"hehe", @"age" : @20, @"sex" : @"男"});
+//    DB.table(@"User").orWhere(@[@"name", @"LIKE", @"%su%", @"age", @">", @22]).where(@{@"name" : @3, @"age" : @4}).orWhere(@"age = 3 OR name like '_l%'").delete();
+    
+    DB.table(@"User").orWhere(@[@"name", @"LIKE", @"%su%", @"age", @">", @22]).orWhere(@{@"name" : @"li"}).delete();
     return;
     [DB inTransaction:^(BOOL *rollback) {
-        ZYTable(@"").select(nil).update(nil);
-        ZYTable(nil).update(nil);
+        DB.table(nil).select(nil).update(nil);
+        DB.table(nil).update(nil);
     }];
     
-    ZYTable(nil).first_map(nil);
+    DB.table(nil).first_map(nil);
     
-    ZYTable(@"User").all_map(^id(NSDictionary *obj) {
+    DB.table(nil).all_map(^id(NSDictionary *obj) {
         return [obj objectForKey:@"name"];
     });
     return;
@@ -52,15 +55,15 @@
     
     DB.table(@"").where(@{@"name" : @"zhangsan"}).first(@"");
     
-    ZYTable(@"").where(nil).andWhere(@{}).delete();
+    DB.table(nil).where(nil).andWhere(@{}).delete();
     
-    ZYTable(@"").where(nil).update(@{});
+    DB.table(nil).where(nil).update(@{});
     
-    ZYTable(@"").where(@{@"name" : @"zhangsan"}).delete();
+    DB.table(nil).where(@{@"name" : @"zhangsan"}).delete();
     
     DB.table(@"").where(@{}).groupBy(@"name").select(@[@"name as a"]).having(@{@"a" : @"name"}).limit(@"3").first(nil);
     
-    ZYTable(@"").where(@{@"id" : @100}).first(nil);
+    DB.table(nil).where(@{@"id" : @100}).first(nil);
     
     
     DB.table(@"").where(@[@"name", @"=", @"abd"]).delete();
