@@ -74,11 +74,14 @@
 {
     _databaseQueue = [FMDatabaseQueue databaseQueueWithPath:[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingString:databaseName]];
     NSString *sql = [NSString stringWithContentsOfFile:filepath encoding:NSUTF8StringEncoding error:NULL];
-    if (sql.length) {
-        [_databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-            [db executeUpdate:sql];
-        }];
-    }
+    NSArray *tableSqls = [sql componentsSeparatedByString:@";"];
+    
+    [_databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
+        for (NSString *tableSql in tableSqls) {
+            NSString *s = [[tableSql stringByReplacingOccurrencesOfString:@"\n" withString:@" "] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            [db executeStatements:[NSString stringWithFormat:@"%@;", s]];
+        }
+    }];
 }
 
 #pragma mark - 执行sql前先指定要操作的表格
@@ -129,7 +132,11 @@
         if ([obj isKindOfClass:[NSNull class]]) {
             [values addObject:@"null"];
         }else{
-            [values addObject:[NSString stringWithFormat:@"'%@'", obj]];
+            if ([obj isKindOfClass:[NSString class]]) {
+                [values addObject:[NSString stringWithFormat:@"'%@'", obj]];
+            }else{
+                [values addObject:[NSString stringWithFormat:@"%@", obj]];
+            }
         }
         [sqlArgs addObject:key];
     }];
@@ -169,7 +176,11 @@
         if ([obj isKindOfClass:[NSNull class]]) {
             [sql appendFormat:@"%@ = null", key];
         }else{
-            [sql appendFormat:@"%@ = '%@'", key, obj];
+            if ([obj isKindOfClass:[NSString class]]) {
+                [sql appendFormat:@"%@ = %@", key, obj];
+            }else{
+                [sql appendFormat:@"%@ = '%@'", key, obj];
+            }
         }
         if (i < keys.count - 1) {
             [sql appendString:@", "];
@@ -384,7 +395,7 @@
                 if ([obj isKindOfClass:[NSNull class]]) {
                     [contentSql appendFormat:@"%@ = null", key];
                 }else{
-                    [contentSql appendFormat:@"%@ = '%@'", key, obj];
+                    [contentSql appendFormat:@"%@ = %@", key, obj];
                 }
                 if (i < allkeys.count - 1) {
                     [contentSql appendString:@" AND "];
@@ -411,7 +422,7 @@
                     if ([obj isKindOfClass:[NSNull class]]) {
                         [contentSql appendString:@"null"];
                     }else{
-                        [contentSql appendFormat:@"'%@'", obj];
+                        [contentSql appendFormat:@"%@", obj];
                     }
                     
                     if (i < arr.count - 1) {
@@ -512,6 +523,19 @@
         };
     }
     return _all_map;
+}
+
+- (OneObjectType)select
+{
+    if (_select == nil) {
+        WeakSelf
+        _select = ^(id args){
+            StrongSelf
+            strongSelf.selectCondition = args;
+            return strongSelf;
+        };
+    }
+    return _select;
 }
 
 - (NSString *)getQuerySql
@@ -674,6 +698,8 @@
 - (NSArray *)getResult:(FMResultSet *)set filter:(MutaipleMapArgsType)type
 {
     NSMutableArray *results = [NSMutableArray array];
+    
+    
     while ([set next]) {
         NSMutableDictionary *result = [NSMutableDictionary dictionary];
         int columnCount = [set columnCount];
