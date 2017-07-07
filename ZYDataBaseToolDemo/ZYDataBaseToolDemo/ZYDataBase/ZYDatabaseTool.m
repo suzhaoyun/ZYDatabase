@@ -26,7 +26,7 @@
 @property (nonatomic, weak) FMDatabase * transationDB;
 @property (nonatomic, strong) NSMutableArray *whereConditions;
 @property (nonatomic, strong) NSMutableArray *havingConditions;
-@property (nonatomic, strong) NSMutableArray *onConditions;
+@property (nonatomic, strong) NSMutableArray *joinConditions;
 @property (nonatomic, strong) ZYDatabaseResult *result;
 @property (nonatomic, copy) NSString *limitCondition;
 @property (nonatomic, strong) id selectCondition;
@@ -361,12 +361,8 @@
     else if (conditions == self.havingConditions){
         condition = HavingConst;
     }
-    else if (conditions == self.onConditions){
+    else{
         condition = ONConst;
-    }
-    
-    if (!condition) {
-        return @"";
     }
     
     [sql appendString:condition];
@@ -541,6 +537,9 @@
     [sql appendFormat:@"FROM %@ ", tableSql];
     
     // 拼接连表语句
+    for (NSString *joinSql in self.joinConditions) {
+        [sql appendFormat:@"%@ ", joinSql];
+    }
     
     // 拼接where条件
     NSString *whereSql = [self getConditionSql:self.whereConditions];
@@ -628,6 +627,48 @@
     return _limit;
 }
 
+/** 连接语句 */
+- (JoinType)join
+{
+    if (_join == nil) {
+        WeakSelf
+        _join = ^(NSString *tableName, NSDictionary *args){
+            StrongSelf
+            NSString *onSql = [strongSelf getConditionSql:[NSMutableArray arrayWithObject:@{@"Type" : @"AND", @"Content" : args}]];
+            [strongSelf.joinConditions addObject:[NSString stringWithFormat:@"%@ %@ %@", JoinConst, tableName, onSql]];
+            return strongSelf;
+        };
+    }
+    return _join;
+}
+
+- (JoinType)leftJoin
+{
+    if (_leftJoin == nil) {
+        WeakSelf
+        _leftJoin = ^(NSString *tableName, NSDictionary *args){
+            StrongSelf
+            NSString *onSql = [strongSelf getConditionSql:[NSMutableArray arrayWithObject:@{@"Type" : @"AND", @"Content" : args}]];
+            [strongSelf.joinConditions addObject:[NSString stringWithFormat:@"%@ %@ %@", LeftJoinConst, tableName, onSql]];
+            return strongSelf;
+        };
+    }
+    return _leftJoin;
+}
+
+- (JoinType)rightJoin
+{
+    if (_rightJoin == nil) {
+        WeakSelf
+        _rightJoin = ^(NSString *tableName, NSDictionary *args){
+            StrongSelf
+            ZYLog(@"暂不支持rightJoin");
+            return strongSelf;
+        };
+    }
+    return _rightJoin;
+}
+
 #pragma mark - 简化方法
 
 - (NSArray *)getResult:(FMResultSet *)set filter:(MutaipleMapArgsType)type
@@ -674,7 +715,7 @@
     [self.whereConditions removeAllObjects];
     [self.orderByConditions removeAllObjects];
     [self.havingConditions removeAllObjects];
-    [self.onConditions removeAllObjects];
+    [self.joinConditions removeAllObjects];
     self.limitCondition = nil;
     self.selectCondition = nil;
     self.groupByCondition = nil;
@@ -698,12 +739,12 @@
     return _havingConditions;
 }
 
-- (NSMutableArray *)onConditions
+- (NSMutableArray *)joinConditions
 {
-    if (_onConditions == nil) {
-        _onConditions = [NSMutableArray array];
+    if (_joinConditions == nil) {
+        _joinConditions = [NSMutableArray array];
     }
-    return _onConditions;
+    return _joinConditions;
 }
 
 - (ZYDatabaseResult *)result

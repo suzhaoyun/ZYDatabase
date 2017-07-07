@@ -15,7 +15,7 @@ typedef ZYDatabaseTool  * (^OneStringType)(NSString *args);
 typedef ZYDatabaseTool  * (^OneObjectType)(id args);
 typedef ZYDatabaseTool  * (^OneDictType)(NSDictionary *args);
 typedef ZYDatabaseTool  * (^OneArrayType)(NSArray *args);
-typedef ZYDatabaseTool  * (^JoinType)(NSString *tableName, id args);
+typedef ZYDatabaseTool  * (^JoinType)(NSString *tableName, NSDictionary *args);
 typedef ZYDatabaseTool  * (^OrderByType)(NSString *column, NSString *sortType);
 
 typedef BOOL (^DeleteType)();
@@ -183,13 +183,8 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 /**
  连接查询
  第一个参数为要连接的表名
-    join(@"b", nil)
- 第二个参数为连接条件,参数也可以是两种类型
- NSArray:  必须制定符号 不然崩溃
-    join(@"b", @[@"b.name", @"=", @"a.name"])
-    小tip 可以不指定表名, 默认前面为要连接的表的字段
- NSDictionary:
-    join(@"b", @{@"name" : @"name"}) 默认为'='号条件
+ 第二个参数为连接条件 NSDictionary:
+    join(@"b", @{@"b.name" : @"a.name"}) 默认为'='号条件
  */
 
 @property (nonatomic, copy, readonly) JoinType join;
@@ -201,7 +196,7 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 @property (nonatomic, copy, readonly) JoinType leftJoin;
 
 /**
- 右连接 参数和join完全一致
+ 右连接 参数和join完全一致 (Sqlite暂不支持)
  */
 
 @property (nonatomic, copy, readonly) JoinType rightJoin;
