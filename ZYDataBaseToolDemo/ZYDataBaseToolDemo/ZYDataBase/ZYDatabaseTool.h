@@ -60,14 +60,16 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 
 /**
  example insert(@{@"数据库字段" : @"插入的数据", ...})
- 如果要清空某个字段 可以使用[NSNull null] 或者@""
+ 如果要清空某个字段 可以使用[NSNull null]
+ NSNull会被翻译成sql中的null. 注意: 它和''空字符串并不相同
  */
 
 @property (nonatomic, copy, readonly) InsertUpdateType insert;
 
 /**
  example update(@{@"数据库字段" : @"插入的数据", ...})
- 如果要清空某个字段 可以使用[NSNull null] 或者@""
+ 如果要清空某个字段 可以使用[NSNull null]
+ NSNull会被翻译成sql中的null. 注意: 它和''空字符串并不相同
  */
 
 @property (nonatomic, copy, readonly) InsertUpdateType update;

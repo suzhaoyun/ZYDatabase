@@ -28,6 +28,7 @@
 @property (nonatomic, strong) ZYDatabaseResult *result;
 @property (nonatomic, copy) NSString *limitCondition;
 @property (nonatomic, strong) id selectCondition;
+@property (nonatomic, strong) NSMutableArray *orderByConditions;
 
 @end
 
@@ -45,6 +46,7 @@
 @synthesize all_map = _all_map;
 @synthesize limit = _limit;
 @synthesize select = _select;
+@synthesize orderBy = _orderBy;
 
 #pragma mark - 初始化设置
 
@@ -114,7 +116,11 @@
     NSMutableArray *values = [NSMutableArray array];
     NSMutableArray *sqlArgs = [NSMutableArray array];
     [args enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-        [values addObject:[NSString stringWithFormat:@"'%@'", [self getNotNullValue:obj]]];
+        if ([obj isKindOfClass:[NSNull class]]) {
+            [values addObject:@"null"];
+        }else{
+            [values addObject:[NSString stringWithFormat:@"'%@'", obj]];
+        }
         [sqlArgs addObject:key];
     }];
     [sql appendFormat:@"(%@) ", [sqlArgs componentsJoinedByString:@","]];
@@ -149,7 +155,12 @@
     NSArray *keys = args.allKeys;
     for (NSUInteger i = 0; i < keys.count; i++) {
         NSString *key = keys[i];
-        [sql appendFormat:@"%@ = '%@'", key, [self getNotNullValue:[args objectForKey:key]]];
+        NSString *obj = [args objectForKey:key];
+        if ([obj isKindOfClass:[NSNull class]]) {
+            [sql appendFormat:@"%@ = null", key];
+        }else{
+            [sql appendFormat:@"%@ = '%@'", key, obj];
+        }
         if (i < keys.count - 1) {
             [sql appendString:@", "];
         }else{
@@ -179,8 +190,12 @@
 - (NSString *)getDeleteSql
 {
     NSAssert(self.tableName != nil, @"请先指定要操作的表...");
-    NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@ ", DeleteConst, self.tableName];
-    [sql appendFormat:@"%@;", [self getWhereSql]];
+    NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@", DeleteConst, self.tableName];
+    NSString *whereSql = [self getWhereSql];
+    if (whereSql.length) {
+        [sql appendFormat:@" %@", whereSql];
+    }
+    [sql appendString:@";"];
     ZYLog(@"%@", sql);
     return sql;
 }
@@ -284,7 +299,12 @@
             NSArray *allkeys = dict.allKeys;
             for (NSUInteger i = 0; i < allkeys.count; i++) {
                 NSString *key = allkeys[i];
-                [contentSql appendFormat:@"%@ = '%@'", key, [self getNotNullValue:[dict objectForKey:key]]];
+                id obj = [dict objectForKey:key];
+                if ([obj isKindOfClass:[NSNull class]]) {
+                    [contentSql appendFormat:@"%@ = null", key];
+                }else{
+                    [contentSql appendFormat:@"%@ = '%@'", key, obj];
+                }
                 if (i < allkeys.count - 1) {
                     [contentSql appendString:@" AND "];
                 }
@@ -299,14 +319,19 @@
             
             for (NSUInteger i = 0; i < arr.count; i++) {
                 NSInteger index = (i + 1) % 3;
+                id obj = arr[i];
                 if (index == 1) {
-                    [contentSql appendFormat:@"%@ ", arr[i]];
+                    [contentSql appendFormat:@"%@ ", obj];
                 }
                 else if (index == 2){
-                    [contentSql appendFormat:@"%@ ", arr[i]];
+                    [contentSql appendFormat:@"%@ ", obj];
                 }
                 else{
-                    [contentSql appendFormat:@"'%@'", [self getNotNullValue:arr[i]]];
+                    if ([obj isKindOfClass:[NSNull class]]) {
+                        [contentSql appendString:@"null"];
+                    }else{
+                        [contentSql appendFormat:@"'%@'", obj];
+                    }
                     
                     if (i < arr.count - 1) {
                         [contentSql appendString:@" AND "];
@@ -436,6 +461,19 @@
         [sql appendFormat:@"%@ ", whereSql];
     }
     
+    // 拼接order by 条件
+    if (self.orderByConditions.count) {
+        [sql appendString:OrderByConst];
+        for (NSUInteger i = 0; i < self.orderByConditions.count; i++) {
+            NSDictionary *dict = self.orderByConditions[i];
+            [sql appendFormat:@"%@ %@", [dict objectForKey:@"column"], [dict objectForKey:@"sortType"]];
+            if (i < self.orderByConditions.count - 1) {
+                [sql appendString:@", "];
+            }
+        }
+        [sql appendString:@" "];
+    }
+    
     // 拼接limit语句
     if (self.limitCondition.length) {
         [sql appendFormat:@"LIMIT %@", self.limitCondition];
@@ -446,6 +484,39 @@
     ZYLog(@"sql : %@", sql);
     
     return sql;
+}
+
+- (OrderByType)orderBy
+{
+    if (_orderBy == nil) {
+        WeakSelf
+        _orderBy = ^(NSString *column, NSString *sortType){
+            StrongSelf
+            [strongSelf addOrderByCondition:column sortType:sortType];
+            return strongSelf;
+        };
+    }
+    return _orderBy;
+}
+
+- (void)addOrderByCondition:(NSString *)column sortType:(NSString *)sortType
+{
+    if (!column.length) {
+        return;
+    }
+    // 默认排序
+    sortType = sortType.length?sortType:@"ASC";
+    
+    // 重复校验
+    for (NSMutableDictionary *dict in self.orderByConditions) {
+        if ([[dict objectForKey:@"column"] isEqualToString:column]) {
+            [self.orderByConditions removeObject:dict];
+            break;
+        }
+    }
+    
+    // 添加排序条件
+    [self.orderByConditions addObject:[NSMutableDictionary dictionaryWithDictionary:@{@"column" : column, @"sortType" : sortType}]];
 }
 
 - (OneStringType)limit
@@ -501,19 +572,11 @@
 }
 
 #pragma mark - 公共操作
-
-- (id)getNotNullValue:(id)obj
-{
-    if (obj == nil || [obj isKindOfClass:[NSNull class]]) {
-        return @"";
-    }
-    return obj;
-}
-
 /** 重置sql */
 - (void)resetSql
 {
     [self.whereConditions removeAllObjects];
+    [self.orderByConditions removeAllObjects];
     self.limitCondition = nil;
     self.selectCondition = nil;
 }
@@ -534,6 +597,14 @@
         _result = [[ZYDatabaseResult alloc] init];
     }
     return _result;
+}
+
+- (NSMutableArray *)orderByConditions
+{
+    if (_orderByConditions == nil) {
+        _orderByConditions = [NSMutableArray array];
+    }
+    return _orderByConditions;
 }
 
 @end
