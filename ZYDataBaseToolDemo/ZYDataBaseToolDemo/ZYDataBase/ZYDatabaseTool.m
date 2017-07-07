@@ -25,14 +25,17 @@
 @property (nonatomic, copy) NSString *tableName;
 @property (nonatomic, weak) FMDatabase * transationDB;
 @property (nonatomic, strong) NSMutableArray *whereConditions;
+@property (nonatomic, strong) NSMutableArray *havingConditions;
+@property (nonatomic, strong) NSMutableArray *onConditions;
 @property (nonatomic, strong) ZYDatabaseResult *result;
 @property (nonatomic, copy) NSString *limitCondition;
 @property (nonatomic, strong) id selectCondition;
 @property (nonatomic, strong) NSMutableArray *orderByConditions;
-
+@property (nonatomic, copy) NSString *groupByCondition;
 @end
 
 @implementation ZYDatabaseTool
+// 为了懒加载, 只能重写get方法. 但是只读属性如果实现了get方法,就不会自动生成_下划线变量了.需要手动合成
 @synthesize table = _table;
 @synthesize insert = _insert;
 @synthesize update = _update;
@@ -47,6 +50,13 @@
 @synthesize limit = _limit;
 @synthesize select = _select;
 @synthesize orderBy = _orderBy;
+@synthesize groupBy = _groupBy;
+@synthesize having = _having;
+@synthesize orHaving = _orHaving;
+@synthesize andHaving = _andHaving;
+@synthesize leftJoin = _leftJoin;
+@synthesize join = _join;
+@synthesize rightJoin = _rightJoin;
 
 #pragma mark - 初始化设置
 
@@ -169,7 +179,7 @@
     }
     
     // 添加筛选条件
-    [sql appendFormat:@"%@;", [self getWhereSql]];
+    [sql appendFormat:@"%@;", [self getConditionSql:self.whereConditions]];
     ZYLog(@"%@", sql);
     return sql;
 }
@@ -191,7 +201,7 @@
 {
     NSAssert(self.tableName != nil, @"请先指定要操作的表...");
     NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@", DeleteConst, self.tableName];
-    NSString *whereSql = [self getWhereSql];
+    NSString *whereSql = [self getConditionSql:self.whereConditions];
     if (whereSql.length) {
         [sql appendFormat:@" %@", whereSql];
     }
@@ -260,15 +270,75 @@
     return _orWhere;
 }
 
-- (NSString *)getWhereSql
+/** group by 分组*/
+- (OneStringType)groupBy
+{
+    if (_groupBy == nil) {
+        WeakSelf
+        _groupBy = ^(NSString *sql){
+            StrongSelf
+            strongSelf.groupByCondition = sql;
+            return strongSelf;
+        };
+    }
+    return _groupBy;
+}
+
+/** having条件 */
+- (OneObjectType)having
+{
+    if (_having == nil) {
+        WeakSelf
+        _having = ^(id args){
+            StrongSelf
+            if (args){
+                [strongSelf.havingConditions addObject:@{@"Type" : @"AND", @"Content" : args}];
+            }
+            return strongSelf;
+        };
+    }
+    return _having;
+}
+
+- (OneObjectType)andHaving
+{
+    if (_andHaving == nil) {
+        WeakSelf
+        _andHaving = ^(id args){
+            StrongSelf
+            if (args){
+                [strongSelf.havingConditions addObject:@{@"Type" : @"AND", @"Content" : args}];
+            }
+            return strongSelf;
+        };
+    }
+    return _andHaving;
+}
+
+- (OneObjectType)orHaving
+{
+    if (_orHaving == nil) {
+        WeakSelf
+        _orHaving = ^(id args){
+            StrongSelf
+            if (args){
+                [strongSelf.havingConditions addObject:@{@"Type" : @"OR", @"Content" : args}];
+            }
+            return strongSelf;
+        };
+    }
+    return _orHaving;
+}
+
+- (NSString *)getConditionSql:(NSMutableArray *)conditions
 {
     NSMutableString *sql = [NSMutableString string];
-    if (self.whereConditions.count == 0) {
+    if (conditions.count == 0) {
         return sql;
     }
     
     // 纠正条件顺序  防止第一个语句有多个条件但第一个条件是OR
-    [self.whereConditions sortUsingComparator:^NSComparisonResult(NSDictionary * _Nonnull obj1, NSDictionary *  _Nonnull obj2) {
+    [conditions sortUsingComparator:^NSComparisonResult(NSDictionary * _Nonnull obj1, NSDictionary *  _Nonnull obj2) {
         NSString *type1 = [obj1 objectForKey:@"Type"];
         NSString *type2 = [obj2 objectForKey:@"Type"];
         
@@ -284,10 +354,25 @@
 
     }];
     
-    [sql appendString:WhereConst];
+    NSString *condition = nil;
+    if (conditions == self.whereConditions) {
+        condition = WhereConst;
+    }
+    else if (conditions == self.havingConditions){
+        condition = HavingConst;
+    }
+    else if (conditions == self.onConditions){
+        condition = ONConst;
+    }
     
-    for (NSUInteger  i = 0; i < self.whereConditions.count; i++) {
-        NSDictionary *whereArgs = self.whereConditions[i];
+    if (!condition) {
+        return @"";
+    }
+    
+    [sql appendString:condition];
+    
+    for (NSUInteger  i = 0; i < conditions.count; i++) {
+        NSDictionary *whereArgs = conditions[i];
         NSString *type = [whereArgs objectForKey:@"Type"];
         
         id args = [whereArgs objectForKey:@"Content"];
@@ -312,7 +397,7 @@
         }
         else if ([args isKindOfClass:[NSArray class]]) {
             NSArray *arr = args;
-            NSAssert(arr.count % 3 == 0, @"%@where参数有问题,参数个数必须是3的倍数", arr);
+            NSAssert(arr.count % 3 == 0, @"%@%@参数有问题,参数个数必须是3的倍数", arr, condition);
             if (arr.count == 0) {
                 continue;
             }
@@ -455,10 +540,21 @@
     NSMutableString *tableSql = [NSMutableString stringWithString:self.tableName];
     [sql appendFormat:@"FROM %@ ", tableSql];
     
+    // 拼接连表语句
+    
     // 拼接where条件
-    NSString *whereSql = [self getWhereSql];
+    NSString *whereSql = [self getConditionSql:self.whereConditions];
     if (whereSql.length) {
         [sql appendFormat:@"%@ ", whereSql];
+    }
+    
+    // 拼接group by 语句 having字句
+    if (self.groupByCondition.length) {
+        [sql appendFormat:@"%@%@ ", GroupByConst, self.groupByCondition];
+        
+        if (self.havingConditions.count) {
+            [sql appendFormat:@"%@ ", [self getConditionSql:self.havingConditions]];
+        }
     }
     
     // 拼接order by 条件
@@ -577,8 +673,11 @@
 {
     [self.whereConditions removeAllObjects];
     [self.orderByConditions removeAllObjects];
+    [self.havingConditions removeAllObjects];
+    [self.onConditions removeAllObjects];
     self.limitCondition = nil;
     self.selectCondition = nil;
+    self.groupByCondition = nil;
 }
 
 #pragma mark - getter
@@ -589,6 +688,22 @@
         _whereConditions = [NSMutableArray array];
     }
     return _whereConditions;
+}
+
+- (NSMutableArray *)havingConditions
+{
+    if (_havingConditions == nil) {
+        _havingConditions = [NSMutableArray array];
+    }
+    return _havingConditions;
+}
+
+- (NSMutableArray *)onConditions
+{
+    if (_onConditions == nil) {
+        _onConditions = [NSMutableArray array];
+    }
+    return _onConditions;
 }
 
 - (ZYDatabaseResult *)result

@@ -168,12 +168,15 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
  */
 
 @property (nonatomic, copy, readonly) OneObjectType orWhere;
+
 /**
  参数和where一致  
     having可以对分组数据进行条件筛选 where不能
  */
 
 @property (nonatomic, copy, readonly) OneObjectType having;
+@property (nonatomic, copy, readonly) OneObjectType andHaving;
+@property (nonatomic, copy, readonly) OneObjectType orHaving;
 
 #pragma mark -  附加操作
 
@@ -206,6 +209,9 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 /**
  分组操作
  参数很简单: 哪个字段作为分组标志
+ example : @"name"
+    也可以设置为多参数
+    @"name, age" : 表示为先按name分组 , 再按age分组
  */
 
 @property (nonatomic, copy, readonly) OneStringType groupBy;
@@ -216,7 +222,7 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
  orderBy(@"name", @"ASC")
  所以参数必须成对出现,第二个参数可以指定排序类型
  可以使用多次orderBy 已保证先后顺序  orderBy(@"a", @"ASC").orderBy(@"b", @"DESC")
- 这样会先已a排序,再已b字段排序  如果设置两次a, 会以最后一次的排序方式为准!
+ 这样会先已a排序,再已b字段排序  如果设置两次a, 会以最后一次的排序方式和未知为准!
  */
 
 @property (nonatomic, copy, readonly) OrderByType orderBy;

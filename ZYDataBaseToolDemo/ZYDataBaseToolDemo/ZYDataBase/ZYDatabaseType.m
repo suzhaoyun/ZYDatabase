@@ -19,3 +19,5 @@ NSString * const LeftJoinConst = @"LEFT JOIN ";
 NSString * const RightJoinConst = @"RIGHT JOIN ";
 NSString * const OrderByConst = @"ORDER BY ";
 NSString * const GroupByConst = @"GROUP BY ";
+NSString * const HavingConst = @"HAVING ";
+NSString * const ONConst = @"ON ";

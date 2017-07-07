@@ -17,3 +17,5 @@ extern NSString * const LeftJoinConst;
 extern NSString * const RightJoinConst;
 extern NSString * const OrderByConst;
 extern NSString * const GroupByConst;
+extern NSString * const HavingConst;
+extern NSString * const ONConst;
