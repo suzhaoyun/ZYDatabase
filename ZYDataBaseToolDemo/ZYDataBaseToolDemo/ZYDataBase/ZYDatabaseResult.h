@@ -10,7 +10,7 @@
 
 @interface ZYDatabaseResult : NSObject
 
-+ (instancetype)databaseResult:(NSDictionary *)dict key:(NSString *)key;
+- (void)setDict:(NSDictionary *)dict key:(NSString *)key;
 
 @property (nonatomic, copy, readonly) NSString *stringValue;
 @property (nonatomic, strong, readonly) NSDictionary *dictValue;

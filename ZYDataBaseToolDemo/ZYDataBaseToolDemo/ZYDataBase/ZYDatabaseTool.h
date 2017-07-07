@@ -23,7 +23,8 @@ typedef BOOL (^InsertUpdateType)(NSDictionary *args);
 typedef NSDictionary * (^FirstType)();
 typedef ZYDatabaseResult * (^FirstMapType)(NSString *column);
 typedef NSArray<NSDictionary *> * (^MutipleType)();
-typedef NSArray * (^MutaipleMapType)(id (^)(NSDictionary *dict));
+typedef id (^MutaipleMapArgsType)(NSDictionary *dict);
+typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 
 @interface ZYDatabaseTool : NSObject
 

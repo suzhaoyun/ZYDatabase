@@ -19,12 +19,10 @@
 
 @implementation ZYDatabaseResult
 
-+ (instancetype)databaseResult:(NSDictionary *)dict key:(NSString *)key
+- (void)setDict:(NSDictionary *)dict key:(NSString *)key;
 {
-    ZYDatabaseResult *rs = [[self alloc] init];
-    rs.dict = dict;
-    rs.key = key;
-    return rs;
+    self.dict = dict;
+    self.key = key;
 }
 
 - (NSString *)stringValue

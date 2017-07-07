@@ -9,6 +9,7 @@
 #import "ZYDatabaseTool.h"
 #import "FMDB.h"
 #import "ZYDatabaseType.h"
+#import "ZYDatabaseResult.h"
 
 //处理日志打印在正式环境下的资源消耗问题
 #ifdef DEBUG
@@ -24,6 +25,10 @@
 @property (nonatomic, copy) NSString *tableName;
 @property (nonatomic, weak) FMDatabase * transationDB;
 @property (nonatomic, strong) NSMutableArray *whereConditions;
+@property (nonatomic, strong) ZYDatabaseResult *result;
+@property (nonatomic, copy) NSString *limitCondition;
+@property (nonatomic, strong) id selectCondition;
+
 @end
 
 @implementation ZYDatabaseTool
@@ -35,7 +40,11 @@
 @synthesize andWhere = _andWhere;
 @synthesize orWhere = _orWhere;
 @synthesize first = _first;
+@synthesize first_map = _first_map;
 @synthesize all = _all;
+@synthesize all_map = _all_map;
+@synthesize limit = _limit;
+@synthesize select = _select;
 
 #pragma mark - 初始化设置
 
@@ -68,6 +77,7 @@
         WeakSelf
         _table = ^(NSString *str){
             StrongSelf
+            [strongSelf resetSql];
             strongSelf.tableName = str;
             return weakSelf;
         };
@@ -104,7 +114,7 @@
     NSMutableArray *values = [NSMutableArray array];
     NSMutableArray *sqlArgs = [NSMutableArray array];
     [args enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-        [values addObject:[NSString stringWithFormat:@"'%@'", obj]];
+        [values addObject:[NSString stringWithFormat:@"'%@'", [self getNotNullValue:obj]]];
         [sqlArgs addObject:key];
     }];
     [sql appendFormat:@"(%@) ", [sqlArgs componentsJoinedByString:@","]];
@@ -139,7 +149,7 @@
     NSArray *keys = args.allKeys;
     for (NSUInteger i = 0; i < keys.count; i++) {
         NSString *key = keys[i];
-        [sql appendFormat:@"%@ = '%@'", key, [args objectForKey:key]];
+        [sql appendFormat:@"%@ = '%@'", key, [self getNotNullValue:[args objectForKey:key]]];
         if (i < keys.count - 1) {
             [sql appendString:@", "];
         }else{
@@ -274,7 +284,7 @@
             NSArray *allkeys = dict.allKeys;
             for (NSUInteger i = 0; i < allkeys.count; i++) {
                 NSString *key = allkeys[i];
-                [contentSql appendFormat:@"%@ = '%@'", key, [dict objectForKey:key]];
+                [contentSql appendFormat:@"%@ = '%@'", key, [self getNotNullValue:[dict objectForKey:key]]];
                 if (i < allkeys.count - 1) {
                     [contentSql appendString:@" AND "];
                 }
@@ -296,7 +306,7 @@
                     [contentSql appendFormat:@"%@ ", arr[i]];
                 }
                 else{
-                    [contentSql appendFormat:@"'%@'", arr[i]];
+                    [contentSql appendFormat:@"'%@'", [self getNotNullValue:arr[i]]];
                     
                     if (i < arr.count - 1) {
                         [contentSql appendString:@" AND "];
@@ -320,16 +330,143 @@
         }
     }
     
+    return [sql stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
+/** 查询方法 */
+
+- (FirstType)first
+{
+    if (_first == nil) {
+        WeakSelf
+        _first = ^{
+            StrongSelf
+            return strongSelf.limit(@"0, 1").all().firstObject;
+        };
+    }
+    return _first;
+}
+
+- (FirstMapType)first_map
+{
+    if (_first_map == nil) {
+        WeakSelf
+        _first_map = ^(NSString *column){
+            StrongSelf
+            [strongSelf.result setDict:strongSelf.first() key:column];
+            return strongSelf.result;
+        };
+    }
+    return _first_map;
+}
+
+- (MutipleType)all
+{
+    if (_all == nil) {
+        WeakSelf
+        _all = ^{
+            StrongSelf
+            NSMutableArray *results = [NSMutableArray array];
+            __block FMResultSet *set = nil;
+            if (strongSelf.transationDB) {
+                set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql]];
+                [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
+
+            }else{
+                [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
+                    set = [db executeQuery:[strongSelf getQuerySql]];
+                    [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
+                }];
+            }
+            return results;
+        };
+    }
+    return _all;
+}
+
+- (MutaipleMapType)all_map
+{
+    if (_all_map == nil) {
+        WeakSelf
+        _all_map = ^(MutaipleMapArgsType type){
+            StrongSelf
+            NSMutableArray *results = [NSMutableArray array];
+            __block FMResultSet *set = nil;
+            if (strongSelf.transationDB) {
+                set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql]];
+                [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
+                
+            }else{
+                [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
+                    set = [db executeQuery:[strongSelf getQuerySql]];
+                    [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
+                }];
+            }
+            return results;
+        };
+    }
+    return _all_map;
+}
+
+- (NSString *)getQuerySql
+{
+    NSAssert(self.tableName.length > 0, @"请先指定要操作的表...");
+    
+    NSMutableString *sql = [NSMutableString stringWithString:SelectConst];
+    
+    // 拼接select语句
+    NSString *selectSql = @"*";
+    if (self.selectCondition) {
+        if ([self.selectCondition isKindOfClass:[NSString class]]) {
+            selectSql = self.selectCondition;
+        }
+        else if ([self.selectCondition isKindOfClass:[NSArray class]]){
+            selectSql = [(NSArray *)self.selectCondition componentsJoinedByString:@","];
+        }
+    }
+    [sql appendFormat:@"%@ ", selectSql];
+    
+    // 拼接table语句
+    NSMutableString *tableSql = [NSMutableString stringWithString:self.tableName];
+    [sql appendFormat:@"FROM %@ ", tableSql];
+    
+    // 拼接where条件
+    NSString *whereSql = [self getWhereSql];
+    if (whereSql.length) {
+        [sql appendFormat:@"%@ ", whereSql];
+    }
+    
+    // 拼接limit语句
+    if (self.limitCondition.length) {
+        [sql appendFormat:@"LIMIT %@", self.limitCondition];
+    }
+    
+    sql = [NSMutableString stringWithFormat:@"%@;", [sql stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]];
+    
+    ZYLog(@"sql : %@", sql);
+    
     return sql;
+}
+
+- (OneStringType)limit
+{
+    if (_limit == nil) {
+        WeakSelf
+        _limit = ^(NSString *sql){
+            StrongSelf
+            strongSelf.limitCondition = sql;
+            return strongSelf;
+        };
+    }
+    return _limit;
 }
 
 #pragma mark - 简化方法
 
-
-- (NSMutableArray *)getResult:(FMResultSet *)set
+- (NSArray *)getResult:(FMResultSet *)set filter:(MutaipleMapArgsType)type
 {
     NSMutableArray *results = [NSMutableArray array];
-    while (set.next) {
+    while ([set next]) {
         NSMutableDictionary *result = [NSMutableDictionary dictionary];
         int columnCount = [set columnCount];
         for (int i = 0; i < columnCount; i++) {
@@ -340,9 +477,15 @@
             }
             [result setObject:obj forKey:columnName];
         }
-        [results addObject:result];
+        
+        if (type) {
+            id obj = type(result);
+            NSAssert(obj != nil, @"all_map的结果值不能是nil");
+            [results addObject:obj];
+        }else{
+            [results addObject:result];
+        }
     }
-    [set close];
     return results;
 }
 
@@ -357,12 +500,40 @@
     }];
 }
 
+#pragma mark - 公共操作
+
+- (id)getNotNullValue:(id)obj
+{
+    if (obj == nil || [obj isKindOfClass:[NSNull class]]) {
+        return @"";
+    }
+    return obj;
+}
+
+/** 重置sql */
+- (void)resetSql
+{
+    [self.whereConditions removeAllObjects];
+    self.limitCondition = nil;
+    self.selectCondition = nil;
+}
+
+#pragma mark - getter
+
 - (NSMutableArray *)whereConditions
 {
     if (_whereConditions == nil) {
         _whereConditions = [NSMutableArray array];
     }
     return _whereConditions;
+}
+
+- (ZYDatabaseResult *)result
+{
+    if (_result == nil) {
+        _result = [[ZYDatabaseResult alloc] init];
+    }
+    return _result;
 }
 
 @end

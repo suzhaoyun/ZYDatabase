@@ -23,7 +23,22 @@
 //     DB.table(@"User").insert(@{@"name" : @"hehe", @"age" : @20, @"sex" : @"男"});
 //    DB.table(@"User").orWhere(@[@"name", @"LIKE", @"%su%", @"age", @">", @22]).where(@{@"name" : @3, @"age" : @4}).orWhere(@"age = 3 OR name like '_l%'").delete();
     
-    DB.table(@"User").orWhere(@[@"name", @"LIKE", @"%su%", @"age", @">", @22]).orWhere(@{@"name" : @"li"}).delete();
+    NSDictionary *dict = DB.table(@"User").first();
+    NSLog(@"%@", dict);
+    
+    
+    NSInteger age = DB.table(@"User").first_map(@"age").integerValue;
+    NSLog(@"age : %zd", age);
+    
+    NSArray *all = DB.table(@"User").all();
+    NSLog(@"%@", all);
+    
+    NSArray *ages = DB.table(@"User").all_map(^id(NSDictionary *dict) {
+        return [dict objectForKey:@"age"];
+    });
+    
+    NSLog(@"%@", ages);
+    
     return;
     [DB inTransaction:^(BOOL *rollback) {
         DB.table(nil).select(nil).update(nil);
