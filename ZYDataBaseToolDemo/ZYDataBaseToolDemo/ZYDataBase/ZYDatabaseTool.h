@@ -12,10 +12,10 @@
 @class ZYDatabaseTool, FMDatabaseQueue, ZYDatabaseResult;
 
 typedef ZYDatabaseTool  * (^OneStringType)(NSString *args);
-typedef ZYDatabaseTool  * (^OneObjectType)(id args);
 typedef ZYDatabaseTool  * (^OneDictType)(NSDictionary *args);
 typedef ZYDatabaseTool  * (^OneArrayType)(NSArray *args);
-typedef ZYDatabaseTool  * (^JoinType)(NSString *tableName, NSDictionary *args);
+typedef ZYDatabaseTool  * (^OneObjectType)(id args);
+typedef ZYDatabaseTool  * (^JoinType)(NSString *tableName, NSDictionary *onConditions);
 typedef ZYDatabaseTool  * (^OrderByType)(NSString *column, NSString *sortType);
 
 typedef BOOL (^DeleteType)();
@@ -108,7 +108,7 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 
 /**
  过滤函数. 可以对每一列的结果进行自定义, 最终返回一个数组里
- example : NSArray *rs = ZYTable(@"User").all_map(^id(NSDictionary *obj) {
+ example : NSArray *rs = DB.table(@"User").all_map(^id(NSDictionary *obj) {
                 return [obj objectForKey:@"name"];
            });
     这样可以在rs数组中得到的都是name了
@@ -138,12 +138,12 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
  NSArray :
     where(@[@"name", @"=", @"zhangsan", @"sex", @">", @18])
     注意数组的个数一定是3的倍数. 不然会报错. 每一项字段的匹配都要指明匹配方式
-    @">"  @"<" @"LIKE" @"IN" @"=" ...
+    @">"  @"<" @"<>" @"LIKE" @"IN" @"=" ...
  NSDictionary : 
     这种传值方式会默认被理解为 @"="
- NSString : 自由的定义sql语句
+ NSString : 原生sql,适用于高级where条件
     这种也可以制作面向对象的APi, 但是提示不太友好 就放弃了.
-    适用于聚合条件
+#waring : 所有的填写原生sql的参数, 如果是字符串类型, 记得加双引号'' , 不然可能会有问题.
         例如where(@"a = 3 OR b = 6").orWhere(@"a = 4 AND b = 7").andWhere(@"c = 3 OR a = 3")
  */
 
@@ -154,6 +154,14 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
  */
 
 @property (nonatomic, copy, readonly) OneObjectType andWhere;
+
+/**
+ 参数和where完全一致
+ 会在条件前添加 'OR'
+ */
+
+@property (nonatomic, copy, readonly) OneObjectType orWhere;
+
 /**
  用于设置别名, 筛选字段. 如果不设置默认为select *
     参数 : @[@"name as a", @"sex as mysex", @"age"]
@@ -162,21 +170,14 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 
 @property (nonatomic, copy, readonly) OneObjectType select;
 
-/**
- 参数和where完全一致
-    会在条件前添加 'OR'
- */
-
-@property (nonatomic, copy, readonly) OneObjectType orWhere;
 
 /**
- 参数和where一致  
-    having可以对分组数据进行条件筛选 where不能
+ 填入原生sql
+ #waring : 所有的填写原生sql的参数, 如果是字符串类型, 记得加双引号'' , 不然可能会有问题.
+ having可以对分组数据进行条件筛选 where不能
  */
 
-@property (nonatomic, copy, readonly) OneObjectType having;
-@property (nonatomic, copy, readonly) OneObjectType andHaving;
-@property (nonatomic, copy, readonly) OneObjectType orHaving;
+@property (nonatomic, copy, readonly) OneStringType having;
 
 #pragma mark -  附加操作
 
@@ -184,7 +185,8 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
  连接查询
  第一个参数为要连接的表名
  第二个参数为连接条件 NSDictionary:
-    join(@"b", @{@"b.name" : @"a.name"}) 默认为'='号条件
+ #warning : 只能填写连接条件. 不可以填写条件判断. 如果要判断请单独使用where语句
+    join(@"b", @{@"b.name" : @"a.name"})
  */
 
 @property (nonatomic, copy, readonly) JoinType join;
@@ -234,12 +236,19 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 
 /**
  FMDB的操作类
+ [DB.databaseQueue inTransaction:^{
+    DB.table() xx 这种写法是错误的. 请使用下面的方法代替
+ }];
+ 
+ [DB inTransaction:^{
+    DB.table().delete();
+ }];
  */
 
 @property (nonatomic, strong, readonly) FMDatabaseQueue *databaseQueue;
 
 /**
- 开启一个事务
+ 开启一个事务.
  */
 
 - (void)inTransaction:(__attribute__((noescape)) void (^)(BOOL *rollback))block;

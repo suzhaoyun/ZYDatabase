@@ -25,10 +25,10 @@
 @property (nonatomic, copy) NSString *tableName;
 @property (nonatomic, weak) FMDatabase * transationDB;
 @property (nonatomic, strong) NSMutableArray *whereConditions;
-@property (nonatomic, strong) NSMutableArray *havingConditions;
 @property (nonatomic, strong) NSMutableArray *joinConditions;
 @property (nonatomic, strong) ZYDatabaseResult *result;
 @property (nonatomic, copy) NSString *limitCondition;
+@property (nonatomic, strong) NSString *havingCondition;
 @property (nonatomic, strong) id selectCondition;
 @property (nonatomic, strong) NSMutableArray *orderByConditions;
 @property (nonatomic, copy) NSString *groupByCondition;
@@ -52,8 +52,6 @@
 @synthesize orderBy = _orderBy;
 @synthesize groupBy = _groupBy;
 @synthesize having = _having;
-@synthesize orHaving = _orHaving;
-@synthesize andHaving = _andHaving;
 @synthesize leftJoin = _leftJoin;
 @synthesize join = _join;
 @synthesize rightJoin = _rightJoin;
@@ -190,7 +188,7 @@
     }
     
     // 添加筛选条件
-    [sql appendFormat:@"%@;", [self getConditionSql:self.whereConditions]];
+    [sql appendFormat:@"%@;", [self getConditionSql]];
     ZYLog(@"%@", sql);
     return sql;
 }
@@ -212,7 +210,7 @@
 {
     NSAssert(self.tableName != nil, @"请先指定要操作的表...");
     NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@", DeleteConst, self.tableName];
-    NSString *whereSql = [self getConditionSql:self.whereConditions];
+    NSString *whereSql = [self getConditionSql];
     if (whereSql.length) {
         [sql appendFormat:@" %@", whereSql];
     }
@@ -296,14 +294,14 @@
 }
 
 /** having条件 */
-- (OneObjectType)having
+- (OneStringType)having
 {
     if (_having == nil) {
         WeakSelf
-        _having = ^(id args){
+        _having = ^(NSString *rawSql){
             StrongSelf
-            if (args){
-                [strongSelf.havingConditions addObject:@{@"Type" : @"AND", @"Content" : args}];
+            if (rawSql.length){
+                strongSelf.havingCondition = rawSql;
             }
             return strongSelf;
         };
@@ -311,45 +309,15 @@
     return _having;
 }
 
-- (OneObjectType)andHaving
-{
-    if (_andHaving == nil) {
-        WeakSelf
-        _andHaving = ^(id args){
-            StrongSelf
-            if (args){
-                [strongSelf.havingConditions addObject:@{@"Type" : @"AND", @"Content" : args}];
-            }
-            return strongSelf;
-        };
-    }
-    return _andHaving;
-}
-
-- (OneObjectType)orHaving
-{
-    if (_orHaving == nil) {
-        WeakSelf
-        _orHaving = ^(id args){
-            StrongSelf
-            if (args){
-                [strongSelf.havingConditions addObject:@{@"Type" : @"OR", @"Content" : args}];
-            }
-            return strongSelf;
-        };
-    }
-    return _orHaving;
-}
-
-- (NSString *)getConditionSql:(NSMutableArray *)conditions
+- (NSString *)getConditionSql
 {
     NSMutableString *sql = [NSMutableString string];
-    if (conditions.count == 0) {
+    if (self.whereConditions.count == 0) {
         return sql;
     }
     
     // 纠正条件顺序  防止第一个语句有多个条件但第一个条件是OR
-    [conditions sortUsingComparator:^NSComparisonResult(NSDictionary * _Nonnull obj1, NSDictionary *  _Nonnull obj2) {
+    [self.whereConditions sortUsingComparator:^NSComparisonResult(NSDictionary * _Nonnull obj1, NSDictionary *  _Nonnull obj2) {
         NSString *type1 = [obj1 objectForKey:@"Type"];
         NSString *type2 = [obj2 objectForKey:@"Type"];
         
@@ -364,22 +332,11 @@
         }
 
     }];
+ 
+    [sql appendString:WhereConst];
     
-    NSString *condition = nil;
-    if (conditions == self.whereConditions) {
-        condition = WhereConst;
-    }
-    else if (conditions == self.havingConditions){
-        condition = HavingConst;
-    }
-    else{
-        condition = ONConst;
-    }
-    
-    [sql appendString:condition];
-    
-    for (NSUInteger  i = 0; i < conditions.count; i++) {
-        NSDictionary *whereArgs = conditions[i];
+    for (NSUInteger  i = 0; i < self.whereConditions.count; i++) {
+        NSDictionary *whereArgs = self.whereConditions[i];
         NSString *type = [whereArgs objectForKey:@"Type"];
         
         id args = [whereArgs objectForKey:@"Content"];
@@ -394,7 +351,11 @@
                 id obj = [dict objectForKey:key];
                 if ([obj isKindOfClass:[NSNull class]]) {
                     [contentSql appendFormat:@"%@ = null", key];
-                }else{
+                }
+                else if ([obj isKindOfClass:[NSString class]]){
+                    [contentSql appendFormat:@"%@ = '%@'", key, obj];
+                }
+                else{
                     [contentSql appendFormat:@"%@ = %@", key, obj];
                 }
                 if (i < allkeys.count - 1) {
@@ -404,7 +365,7 @@
         }
         else if ([args isKindOfClass:[NSArray class]]) {
             NSArray *arr = args;
-            NSAssert(arr.count % 3 == 0, @"%@%@参数有问题,参数个数必须是3的倍数", arr, condition);
+            NSAssert(arr.count % 3 == 0, @"%@%@参数有问题,参数个数必须是3的倍数", arr, @"where");
             if (arr.count == 0) {
                 continue;
             }
@@ -418,10 +379,30 @@
                 else if (index == 2){
                     [contentSql appendFormat:@"%@ ", obj];
                 }
+                // 第三个参数
                 else{
                     if ([obj isKindOfClass:[NSNull class]]) {
                         [contentSql appendString:@"null"];
-                    }else{
+                    }
+                    else if ([obj isKindOfClass:[NSString class]]){
+                        [contentSql appendFormat:@"'%@'", obj];
+                    }
+                    // 如果是数组 可能是in条件
+                    else if ([obj isKindOfClass:[NSArray class]]) {
+                        NSArray *inObjs = obj;
+                        NSMutableString *inObjSql = [NSMutableString string];
+                        for (NSUInteger j = 0; j < inObjs.count; j++) {
+                            id ob = inObjs[j];
+                            if ([ob isKindOfClass:[NSString class]]) {
+                                [inObjSql appendFormat:@"'%@'", ob];
+                            }
+                            if (j < inObjs.count - 1) {
+                                [inObjSql appendString:@","];
+                            }
+                        }
+                        [contentSql appendFormat:@"(%@)", inObjSql];
+                    }
+                    else{
                         [contentSql appendFormat:@"%@", obj];
                     }
                     
@@ -431,10 +412,11 @@
                 }
             }
         }
+        // 高级where语句 必须加括号
         else if ([args isKindOfClass:[NSString class]]){
             NSString *strArgs = args;
             if (strArgs.length) {
-                [contentSql appendFormat:@"%@", strArgs];
+                [contentSql appendFormat:@"(%@)", strArgs];
             }
         }
         
@@ -443,7 +425,7 @@
             if (i != 0) {
                 [sql appendFormat:@" %@ ", type];
             }
-            [sql appendFormat:@"(%@)", contentSql];
+            [sql appendFormat:@"%@", contentSql];
         }
     }
     
@@ -488,11 +470,12 @@
             if (strongSelf.transationDB) {
                 set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql]];
                 [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
-
+                [set close];
             }else{
                 [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
                     set = [db executeQuery:[strongSelf getQuerySql]];
                     [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
+                    [set close];
                 }];
             }
             return results;
@@ -512,11 +495,12 @@
             if (strongSelf.transationDB) {
                 set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql]];
                 [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
-                
+                [set close];
             }else{
                 [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
                     set = [db executeQuery:[strongSelf getQuerySql]];
                     [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
+                    [set close];
                 }];
             }
             return results;
@@ -566,7 +550,7 @@
     }
     
     // 拼接where条件
-    NSString *whereSql = [self getConditionSql:self.whereConditions];
+    NSString *whereSql = [self getConditionSql];
     if (whereSql.length) {
         [sql appendFormat:@"%@ ", whereSql];
     }
@@ -575,8 +559,8 @@
     if (self.groupByCondition.length) {
         [sql appendFormat:@"%@%@ ", GroupByConst, self.groupByCondition];
         
-        if (self.havingConditions.count) {
-            [sql appendFormat:@"%@ ", [self getConditionSql:self.havingConditions]];
+        if (self.havingCondition.length) {
+            [sql appendFormat:@"%@ %@ ", HavingConst, self.havingCondition];
         }
     }
     
@@ -658,8 +642,7 @@
         WeakSelf
         _join = ^(NSString *tableName, NSDictionary *args){
             StrongSelf
-            NSString *onSql = [strongSelf getConditionSql:[NSMutableArray arrayWithObject:@{@"Type" : @"AND", @"Content" : args}]];
-            [strongSelf.joinConditions addObject:[NSString stringWithFormat:@"%@ %@ %@", JoinConst, tableName, onSql]];
+            [strongSelf dealJoinSql:tableName args:args];
             return strongSelf;
         };
     }
@@ -672,8 +655,7 @@
         WeakSelf
         _leftJoin = ^(NSString *tableName, NSDictionary *args){
             StrongSelf
-            NSString *onSql = [strongSelf getConditionSql:[NSMutableArray arrayWithObject:@{@"Type" : @"AND", @"Content" : args}]];
-            [strongSelf.joinConditions addObject:[NSString stringWithFormat:@"%@ %@ %@", LeftJoinConst, tableName, onSql]];
+            [strongSelf dealJoinSql:tableName args:args];
             return strongSelf;
         };
     }
@@ -691,6 +673,22 @@
         };
     }
     return _rightJoin;
+}
+
+- (void)dealJoinSql:(NSString *)tableName args:(NSDictionary *)args
+{
+    NSMutableString *sql = [NSMutableString string];
+    NSArray *allKeys = args.allKeys;
+    for (NSUInteger i = 0; i < allKeys.count; i++) {
+        NSString *key = allKeys[i];
+        [sql appendFormat:@"%@ = %@ ", key, [args objectForKey:key]];
+        if (i < allKeys.count - 1) {
+            [sql appendString:@"AND "];
+        }
+    }
+    if (sql.length) {
+        [self.joinConditions addObject:[NSString stringWithFormat:@"%@%@ ON %@", JoinConst, tableName, sql]];
+    }
 }
 
 #pragma mark - 简化方法
@@ -740,8 +738,8 @@
 {
     [self.whereConditions removeAllObjects];
     [self.orderByConditions removeAllObjects];
-    [self.havingConditions removeAllObjects];
     [self.joinConditions removeAllObjects];
+    self.havingCondition = nil;
     self.limitCondition = nil;
     self.selectCondition = nil;
     self.groupByCondition = nil;
@@ -755,14 +753,6 @@
         _whereConditions = [NSMutableArray array];
     }
     return _whereConditions;
-}
-
-- (NSMutableArray *)havingConditions
-{
-    if (_havingConditions == nil) {
-        _havingConditions = [NSMutableArray array];
-    }
-    return _havingConditions;
 }
 
 - (NSMutableArray *)joinConditions
