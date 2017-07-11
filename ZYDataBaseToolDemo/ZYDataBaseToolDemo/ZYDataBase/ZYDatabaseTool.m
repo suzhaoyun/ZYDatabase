@@ -59,6 +59,7 @@
 @synthesize join = _join;
 @synthesize rightJoin = _rightJoin;
 @synthesize distinct = _distinct;
+@synthesize count = _count;
 
 #pragma mark - 初始化设置
 
@@ -521,6 +522,18 @@
         };
     }
     return _all_;
+}
+
+- (CountType)count
+{
+    if (_count == nil) {
+        WeakSelf
+        _count = ^{
+            StrongSelf
+            return strongSelf.select(@"count(*) as count").first_(@"count").integerValue;
+        };
+    }
+    return _count;
 }
 
 - (DistinctType)distinct

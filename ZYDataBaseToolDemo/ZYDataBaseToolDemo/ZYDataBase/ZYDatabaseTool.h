@@ -26,7 +26,7 @@ typedef ZYDatabaseResult * (^FirstMapType)(NSString *column);
 typedef ZYDatabaseTool * (^DistinctType)();
 typedef NSArray<NSDictionary *> * (^MutipleType)();
 typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
-typedef NSUInteger (^CountType)();
+typedef NSInteger (^CountType)();
 
 @interface ZYDatabaseTool : NSObject
 

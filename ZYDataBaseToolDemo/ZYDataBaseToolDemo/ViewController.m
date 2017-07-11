@@ -58,6 +58,10 @@
 
 - (void)testQuery
 {
+    
+    NSInteger count = DB.table(@"User").count();
+    
+    
     NSDictionary *dict = DB.table(@"User").where(@{@"age" : @22}).orWhere(@[@"age", @"<", @"100"]).orderBy(@"name", @"DESC").orderBy(@"name", nil).orderBy(@"age", @"").orderBy(@"name", @"ASC").first();
     NSLog(@"%@", dict);
     
