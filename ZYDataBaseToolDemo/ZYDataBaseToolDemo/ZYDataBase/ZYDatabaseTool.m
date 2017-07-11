@@ -317,6 +317,32 @@
     }
     
     // 纠正条件顺序  防止第一个语句有多个条件但第一个条件是OR
+    [self sortWhereApi];
+ 
+    [sql appendString:WhereConst];
+    
+    for (NSUInteger  i = 0; i < self.whereConditions.count; i++) {
+        NSDictionary *whereArgs = self.whereConditions[i];
+        NSString *type = [whereArgs objectForKey:@"Type"];
+        
+        id args = [whereArgs objectForKey:@"Content"];
+        
+        NSString *contentSql = [self getWhereCondition:args];
+        
+        // 添加类型符号
+        if (contentSql.length > 0) {
+            if (i != 0) {
+                [sql appendFormat:@" %@ ", type];
+            }
+            [sql appendFormat:@"%@", contentSql];
+        }
+    }
+    
+    return [sql stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
+- (void)sortWhereApi
+{
     [self.whereConditions sortUsingComparator:^NSComparisonResult(NSDictionary * _Nonnull obj1, NSDictionary *  _Nonnull obj2) {
         NSString *type1 = [obj1 objectForKey:@"Type"];
         NSString *type2 = [obj2 objectForKey:@"Type"];
@@ -330,102 +356,94 @@
         else{
             return NSOrderedSame;
         }
-
+        
     }];
- 
-    [sql appendString:WhereConst];
-    
-    for (NSUInteger  i = 0; i < self.whereConditions.count; i++) {
-        NSDictionary *whereArgs = self.whereConditions[i];
-        NSString *type = [whereArgs objectForKey:@"Type"];
+}
+
+- (NSString *)getWhereCondition:(id)args
+{
+    NSMutableString *contentSql = [NSMutableString string];
+
+    if ([args isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *dict = args;
+        NSArray *allkeys = dict.allKeys;
+        for (NSUInteger i = 0; i < allkeys.count; i++) {
+            NSString *key = allkeys[i];
+            id obj = [dict objectForKey:key];
+            if ([obj isKindOfClass:[NSNull class]]) {
+                [contentSql appendFormat:@"%@ = null", key];
+            }
+            else{
+                [contentSql appendFormat:@"%@ = ?", key];
+                [self.arguments addObject:obj];
+            }
+            if (i < allkeys.count - 1) {
+                [contentSql appendString:@" AND "];
+            }
+        }
+    }
+    else if ([args isKindOfClass:[NSArray class]]) {
+        NSArray *arr = args;
+        NSAssert(arr.count % 3 == 0, @"%@%@参数有问题,参数个数必须是3的倍数", arr, @"where");
+        if (arr.count == 0) {
+            return nil;
+        }
         
-        id args = [whereArgs objectForKey:@"Content"];
-        
-        NSMutableString *contentSql = [NSMutableString string];
-        
-        if ([args isKindOfClass:[NSDictionary class]]) {
-            NSDictionary *dict = args;
-            NSArray *allkeys = dict.allKeys;
-            for (NSUInteger i = 0; i < allkeys.count; i++) {
-                NSString *key = allkeys[i];
-                id obj = [dict objectForKey:key];
+        for (NSUInteger i = 0; i < arr.count; i++) {
+            NSInteger index = (i + 1) % 3;
+            id obj = arr[i];
+            if (index == 1) {
+                [contentSql appendFormat:@"%@ ", obj];
+            }
+            else if (index == 2){
+                [contentSql appendFormat:@"%@ ", obj];
+            }
+            // 第三个参数
+            else{
                 if ([obj isKindOfClass:[NSNull class]]) {
-                    [contentSql appendFormat:@"%@ = null", key];
+                    [contentSql appendString:@"null"];
+                }
+                // 如果是数组 可能是in条件
+                else if ([obj isKindOfClass:[NSArray class]]) {
+                    NSString *values = [self getValuesString:obj];
+                    if (values.length > 0) {
+                        [contentSql appendFormat:@"(%@)", values];
+                    }
                 }
                 else{
-                    [contentSql appendFormat:@"%@ = ?", key];
+                    [contentSql appendString:@"?"];
                     [self.arguments addObject:obj];
                 }
-                if (i < allkeys.count - 1) {
+                
+                if (i < arr.count - 1) {
                     [contentSql appendString:@" AND "];
                 }
             }
         }
-        else if ([args isKindOfClass:[NSArray class]]) {
-            NSArray *arr = args;
-            NSAssert(arr.count % 3 == 0, @"%@%@参数有问题,参数个数必须是3的倍数", arr, @"where");
-            if (arr.count == 0) {
-                continue;
-            }
-            
-            for (NSUInteger i = 0; i < arr.count; i++) {
-                NSInteger index = (i + 1) % 3;
-                id obj = arr[i];
-                if (index == 1) {
-                    [contentSql appendFormat:@"%@ ", obj];
-                }
-                else if (index == 2){
-                    [contentSql appendFormat:@"%@ ", obj];
-                }
-                // 第三个参数
-                else{
-                    if ([obj isKindOfClass:[NSNull class]]) {
-                        [contentSql appendString:@"null"];
-                    }
-                    // 如果是数组 可能是in条件
-                    else if ([obj isKindOfClass:[NSArray class]]) {
-                        NSArray *inObjs = obj;
-                        NSMutableString *inObjSql = [NSMutableString string];
-                        for (NSUInteger j = 0; j < inObjs.count; j++) {
-                            id ob = inObjs[j];
-                            if ([ob isKindOfClass:[NSString class]]) {
-                                [inObjSql appendFormat:@"'%@'", ob];
-                            }
-                            if (j < inObjs.count - 1) {
-                                [inObjSql appendString:@","];
-                            }
-                        }
-                        [contentSql appendFormat:@"(%@)", inObjSql];
-                    }
-                    else{
-                        [contentSql appendString:@"?"];
-                        [self.arguments addObject:obj];
-                    }
-                    
-                    if (i < arr.count - 1) {
-                        [contentSql appendString:@" AND "];
-                    }
-                }
-            }
-        }
-        // 高级where语句 必须加括号
-        else if ([args isKindOfClass:[NSString class]]){
-            NSString *strArgs = args;
-            if (strArgs.length) {
-                [contentSql appendFormat:@"(%@)", strArgs];
-            }
-        }
-        
-        // 添加类型符号
-        if (contentSql.length > 0) {
-            if (i != 0) {
-                [sql appendFormat:@" %@ ", type];
-            }
-            [sql appendFormat:@"%@", contentSql];
+    }
+    // 高级where语句 必须加括号
+    else if ([args isKindOfClass:[NSString class]]){
+        NSString *strArgs = args;
+        if (strArgs.length) {
+            [contentSql appendFormat:@"(%@)", strArgs];
         }
     }
-    
-    return [sql stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    return contentSql;
+}
+
+- (NSString *)getValuesString:(NSArray *)array
+{
+    NSMutableString *inObjSql = [NSMutableString string];
+    for (NSUInteger j = 0; j < array.count; j++) {
+        id ob = array[j];
+        if ([ob isKindOfClass:[NSString class]]) {
+            [inObjSql appendFormat:@"'%@'", ob];
+        }
+        if (j < array.count - 1) {
+            [inObjSql appendString:@","];
+        }
+    }
+    return inObjSql;
 }
 
 /** 查询方法 */
