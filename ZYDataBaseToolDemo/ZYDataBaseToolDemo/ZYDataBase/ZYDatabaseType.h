@@ -12,6 +12,7 @@ extern NSString * const UpdateConst;
 extern NSString * const DeleteConst;
 extern NSString * const InsertConst;
 extern NSString * const SelectConst;
+extern NSString * const DistinctConst;
 extern NSString * const JoinConst;
 extern NSString * const LeftJoinConst;
 extern NSString * const RightJoinConst;

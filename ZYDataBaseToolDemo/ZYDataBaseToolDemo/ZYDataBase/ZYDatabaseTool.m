@@ -27,11 +27,14 @@
 @property (nonatomic, strong) NSMutableArray *whereConditions;
 @property (nonatomic, strong) NSMutableArray *joinConditions;
 @property (nonatomic, strong) ZYDatabaseResult *result;
+@property (nonatomic, assign) BOOL distinctCondition;
 @property (nonatomic, copy) NSString *limitCondition;
 @property (nonatomic, strong) NSString *havingCondition;
 @property (nonatomic, strong) id selectCondition;
 @property (nonatomic, strong) NSMutableArray *orderByConditions;
 @property (nonatomic, copy) NSString *groupByCondition;
+@property (nonatomic, strong) NSMutableArray *arguments;
+
 @end
 
 @implementation ZYDatabaseTool
@@ -44,9 +47,9 @@
 @synthesize andWhere = _andWhere;
 @synthesize orWhere = _orWhere;
 @synthesize first = _first;
-@synthesize first_map = _first_map;
+@synthesize first_ = _first_;
 @synthesize all = _all;
-@synthesize all_map = _all_map;
+@synthesize all_ = _all_;
 @synthesize limit = _limit;
 @synthesize select = _select;
 @synthesize orderBy = _orderBy;
@@ -55,6 +58,7 @@
 @synthesize leftJoin = _leftJoin;
 @synthesize join = _join;
 @synthesize rightJoin = _rightJoin;
+@synthesize distinct = _distinct;
 
 #pragma mark - 初始化设置
 
@@ -128,13 +132,10 @@
     NSMutableArray *sqlArgs = [NSMutableArray array];
     [args enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         if ([obj isKindOfClass:[NSNull class]]) {
-            [values addObject:@"null"];
+            [values addObject:@"NULL"];
         }else{
-            if ([obj isKindOfClass:[NSString class]]) {
-                [values addObject:[NSString stringWithFormat:@"'%@'", obj]];
-            }else{
-                [values addObject:[NSString stringWithFormat:@"%@", obj]];
-            }
+            [values addObject:@"?"];
+            [self.arguments addObject:obj];
         }
         [sqlArgs addObject:key];
     }];
@@ -219,15 +220,14 @@
     return sql;
 }
 
-- (BOOL)executeUpdate:(NSString *)sql,...
+- (BOOL)executeUpdate:(NSString *)sql
 {
     __block BOOL result;
     if (self.transationDB) {
-        result = [self.transationDB executeUpdate:sql];
+        result = [self.transationDB executeUpdate:sql withArgumentsInArray:self.arguments];
     }else{
-        
         [self.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-            result = [db executeUpdate:sql];
+            result = [db executeUpdate:sql withArgumentsInArray:self.arguments];
         }];
     }
     return result;
@@ -352,11 +352,9 @@
                 if ([obj isKindOfClass:[NSNull class]]) {
                     [contentSql appendFormat:@"%@ = null", key];
                 }
-                else if ([obj isKindOfClass:[NSString class]]){
-                    [contentSql appendFormat:@"%@ = '%@'", key, obj];
-                }
                 else{
-                    [contentSql appendFormat:@"%@ = %@", key, obj];
+                    [contentSql appendFormat:@"%@ = ?", key];
+                    [self.arguments addObject:obj];
                 }
                 if (i < allkeys.count - 1) {
                     [contentSql appendString:@" AND "];
@@ -384,9 +382,6 @@
                     if ([obj isKindOfClass:[NSNull class]]) {
                         [contentSql appendString:@"null"];
                     }
-                    else if ([obj isKindOfClass:[NSString class]]){
-                        [contentSql appendFormat:@"'%@'", obj];
-                    }
                     // 如果是数组 可能是in条件
                     else if ([obj isKindOfClass:[NSArray class]]) {
                         NSArray *inObjs = obj;
@@ -403,7 +398,8 @@
                         [contentSql appendFormat:@"(%@)", inObjSql];
                     }
                     else{
-                        [contentSql appendFormat:@"%@", obj];
+                        [contentSql appendString:@"?"];
+                        [self.arguments addObject:obj];
                     }
                     
                     if (i < arr.count - 1) {
@@ -446,17 +442,17 @@
     return _first;
 }
 
-- (FirstMapType)first_map
+- (FirstMapType)first_
 {
-    if (_first_map == nil) {
+    if (_first_ == nil) {
         WeakSelf
-        _first_map = ^(NSString *column){
+        _first_ = ^(NSString *column){
             StrongSelf
             [strongSelf.result setDict:strongSelf.first() key:column];
             return strongSelf.result;
         };
     }
-    return _first_map;
+    return _first_;
 }
 
 - (MutipleType)all
@@ -468,12 +464,12 @@
             NSMutableArray *results = [NSMutableArray array];
             __block FMResultSet *set = nil;
             if (strongSelf.transationDB) {
-                set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql]];
+                set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
                 [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
                 [set close];
             }else{
                 [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-                    set = [db executeQuery:[strongSelf getQuerySql]];
+                    set = [db executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
                     [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
                     [set close];
                 }];
@@ -484,21 +480,21 @@
     return _all;
 }
 
-- (MutaipleMapType)all_map
+- (MutaipleMapType)all_
 {
-    if (_all_map == nil) {
+    if (_all_ == nil) {
         WeakSelf
-        _all_map = ^(MutaipleMapArgsType type){
+        _all_ = ^(MutaipleMapArgsType type){
             StrongSelf
             NSMutableArray *results = [NSMutableArray array];
             __block FMResultSet *set = nil;
             if (strongSelf.transationDB) {
-                set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql]];
+                set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
                 [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
                 [set close];
             }else{
                 [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-                    set = [db executeQuery:[strongSelf getQuerySql]];
+                    set = [db executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
                     [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
                     [set close];
                 }];
@@ -506,7 +502,20 @@
             return results;
         };
     }
-    return _all_map;
+    return _all_;
+}
+
+- (DistinctType)distinct
+{
+    if (_distinct == nil) {
+        WeakSelf
+        _distinct = ^{
+            StrongSelf
+            strongSelf.distinctCondition = YES;
+            return strongSelf;
+        };
+    }
+    return _distinct;
 }
 
 - (OneObjectType)select
@@ -527,6 +536,11 @@
     NSAssert(self.tableName.length > 0, @"请先指定要操作的表...");
     
     NSMutableString *sql = [NSMutableString stringWithString:SelectConst];
+    
+    // 添加去重语句
+    if (self.distinctCondition) {
+        [sql appendString:DistinctConst];
+    }
     
     // 拼接select语句
     NSString *selectSql = @"*";
@@ -681,7 +695,8 @@
     NSArray *allKeys = args.allKeys;
     for (NSUInteger i = 0; i < allKeys.count; i++) {
         NSString *key = allKeys[i];
-        [sql appendFormat:@"%@ = %@ ", key, [args objectForKey:key]];
+        [sql appendFormat:@"%@ = ? ", key];
+        [self.arguments addObject:[args objectForKey:key]];
         if (i < allKeys.count - 1) {
             [sql appendString:@"AND "];
         }
@@ -739,6 +754,8 @@
     [self.whereConditions removeAllObjects];
     [self.orderByConditions removeAllObjects];
     [self.joinConditions removeAllObjects];
+    [self.arguments removeAllObjects];
+    self.distinctCondition = NO;
     self.havingCondition = nil;
     self.limitCondition = nil;
     self.selectCondition = nil;
@@ -777,6 +794,14 @@
         _orderByConditions = [NSMutableArray array];
     }
     return _orderByConditions;
+}
+
+- (NSMutableArray *)arguments
+{
+    if (_arguments == nil) {
+        _arguments = [NSMutableArray array];
+    }
+    return _arguments;
 }
 
 @end

@@ -17,7 +17,6 @@
 #endif
 
 #import "ZYDatabaseTool.h"
-#import "ZYDatabaseModel.h"
 #import "ZYDatabaseResult.h"
 #import "FMDB.h"
 

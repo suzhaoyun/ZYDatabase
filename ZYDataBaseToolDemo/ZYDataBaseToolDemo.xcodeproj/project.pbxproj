@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		580B1C741F00B89800592CB8 /* ZYDatabaseModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 580B1C731F00B89800592CB8 /* ZYDatabaseModel.m */; };
 		580FFE931EFE3F4F002A422D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFE921EFE3F4F002A422D /* main.m */; };
 		580FFE961EFE3F4F002A422D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFE951EFE3F4F002A422D /* AppDelegate.m */; };
 		580FFE991EFE3F4F002A422D /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 580FFE981EFE3F4F002A422D /* ViewController.m */; };
@@ -48,8 +47,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		580B1C721F00B89800592CB8 /* ZYDatabaseModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZYDatabaseModel.h; sourceTree = "<group>"; };
-		580B1C731F00B89800592CB8 /* ZYDatabaseModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZYDatabaseModel.m; sourceTree = "<group>"; };
 		580FFE8E1EFE3F4F002A422D /* ZYDataBaseToolDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZYDataBaseToolDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		580FFE921EFE3F4F002A422D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		580FFE941EFE3F4F002A422D /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -193,8 +190,6 @@
 				58E6F29F1F0CABBF00BDBD35 /* NSDictionary+ZYSafe.m */,
 				580FFEE31EFE584E002A422D /* ZYDatabaseType.h */,
 				580FFEE41EFE584E002A422D /* ZYDatabaseType.m */,
-				580B1C721F00B89800592CB8 /* ZYDatabaseModel.h */,
-				580B1C731F00B89800592CB8 /* ZYDatabaseModel.m */,
 				580FFEE81EFE5CB6002A422D /* ZYDatabase.h */,
 				580FFEC81EFE4160002A422D /* fmdb */,
 			);
@@ -367,7 +362,6 @@
 				580FFEE51EFE584E002A422D /* ZYDatabaseType.m in Sources */,
 				580FFED81EFE4160002A422D /* FMDatabaseQueue.m in Sources */,
 				580FFE961EFE3F4F002A422D /* AppDelegate.m in Sources */,
-				580B1C741F00B89800592CB8 /* ZYDatabaseModel.m in Sources */,
 				580FFE931EFE3F4F002A422D /* main.m in Sources */,
 				580FFED51EFE4160002A422D /* FMDatabase.m in Sources */,
 				580FFED71EFE4160002A422D /* FMDatabasePool.m in Sources */,

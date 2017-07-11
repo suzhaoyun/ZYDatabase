@@ -21,10 +21,12 @@ typedef ZYDatabaseTool  * (^OrderByType)(NSString *column, NSString *sortType);
 typedef BOOL (^DeleteType)();
 typedef BOOL (^InsertUpdateType)(NSDictionary *args);
 typedef NSDictionary * (^FirstType)();
-typedef ZYDatabaseResult * (^FirstMapType)(NSString *column);
-typedef NSArray<NSDictionary *> * (^MutipleType)();
 typedef id (^MutaipleMapArgsType)(NSDictionary *dict);
+typedef ZYDatabaseResult * (^FirstMapType)(NSString *column);
+typedef ZYDatabaseTool * (^DistinctType)();
+typedef NSArray<NSDictionary *> * (^MutipleType)();
 typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
+typedef NSUInteger (^CountType)();
 
 @interface ZYDatabaseTool : NSObject
 
@@ -89,14 +91,13 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
 
 @property (nonatomic, copy, readonly) FirstType first;
 
-
 /**
- 过滤函数  可以直接指定列名 来获取指定列的值
-    return: ZYDatabaseResult 这个类可以用来快速获取指定类型的值
-    example : first_map(@"name").stringValue 
-              first_map(@"isfriend").boolValue
+ 快速获取指定列的值
+ return: ZYDatabaseResult 这个类可以用来快速获取指定类型的值
+ example : first_map(@"name").stringValue
+ first_map(@"isfriend").boolValue
  */
-@property (nonatomic, copy, readonly) FirstMapType first_map;
+@property (nonatomic, copy, readonly) FirstMapType first_;
 
 /**
  获取所有的结果
@@ -114,21 +115,21 @@ typedef NSArray * (^MutaipleMapType)(MutaipleMapArgsType type);
     这样可以在rs数组中得到的都是name了
     最常用的操作 : 可以用来字典转模型
  */
-@property (nonatomic, copy, readonly) MutaipleMapType all_map;
+@property (nonatomic, copy, readonly) MutaipleMapType all_;
 
 /**
  获取所有的结果 (去除重复数据)
- distinct用法 : 跟在select后面, select 后面的字段会被指定为判断重复的依据
- example: select distinct a, b from xx; 会把a和b两列的值作为是否重复的判断标准
- return NSArray<NSDictionary>
+ distinct作用 : 跟在select后面, select 后面的字段会被指定为判断重复的依据
+ example: SELECT DISTINCT a, b FROM xx; 会把a和b两列的值作为是否重复的判断标准
+ 这个api使用时可以放在任意位置
  */
 
-@property (nonatomic, copy, readonly) MutipleType distinct;
+@property (nonatomic, copy, readonly) DistinctType distinct;
 
 /**
- 同all_map用法保持一致
+ 统计数据的条数
  */
-@property (nonatomic, copy, readonly) MutaipleMapType distinct_map;
+@property (nonatomic, copy,  readonly) CountType count;
 
 #pragma mark -  条件函数
 

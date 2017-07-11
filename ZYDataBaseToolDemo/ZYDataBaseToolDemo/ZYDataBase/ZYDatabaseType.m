@@ -14,6 +14,7 @@ NSString * const UpdateConst = @"UPDATE ";
 NSString * const DeleteConst = @"DELETE FROM ";
 NSString * const InsertConst = @"INSERT INTO ";
 NSString * const SelectConst = @"SELECT ";
+NSString * const DistinctConst = @"DISTINCK ";
 NSString * const JoinConst = @"INNER JOIN ";
 NSString * const LeftJoinConst = @"LEFT JOIN ";
 NSString * const RightJoinConst = @"RIGHT JOIN ";

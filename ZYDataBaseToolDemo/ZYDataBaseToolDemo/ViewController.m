@@ -24,7 +24,7 @@
     
 //    [self testInsert];
     
-//    [self testQuery];
+    [self testQuery];
     
 //    [self testUpdate];
     
@@ -58,17 +58,17 @@
 
 - (void)testQuery
 {
-    NSDictionary *dict = DB.table(@"User").orderBy(@"name", @"DESC").orderBy(@"name", nil).orderBy(@"age", @"").orderBy(@"name", @"ASC").first();
+    NSDictionary *dict = DB.table(@"User").where(@{@"age" : @22}).orWhere(@[@"age", @"<", @"100"]).orderBy(@"name", @"DESC").orderBy(@"name", nil).orderBy(@"age", @"").orderBy(@"name", @"ASC").first();
     NSLog(@"%@", dict);
     
     
-    NSInteger age = DB.table(@"User").first_map(@"age").integerValue;
+    NSInteger age = DB.table(@"User").first_(@"age").integerValue;
     NSLog(@"age : %zd", age);
     
     NSArray *all = DB.table(@"User").all();
     NSLog(@"%@", all);
     
-    NSArray *ages = DB.table(@"User").all_map(^id(NSDictionary *dict) {
+    NSArray *ages = DB.table(@"User").all_(^id(NSDictionary *dict) {
         return [dict objectForKey:@"age"];
     });
     
@@ -87,15 +87,19 @@
 
 - (void)testGroupBy
 {
-    NSDictionary *rs = DB.table(@"User").select(@"age, count(*) as c").groupBy(@"age").having(@"c = 1").first();
+    NSDictionary *rs = DB.table(@"User").select(@"age, count(*) as c").groupBy(@"age").having(@"c = 1").distinct().first();
     
     NSLog(@"%@", rs);
+    
+    DB.table(@"User").distinct().all_(^id(NSDictionary *dict) {
+        return nil;
+    });
     
 }
 
 - (void)testJoin
 {
-    NSString *name = DB.table(@"User").join(@"Car", @{@"Car.id":@"User.car_id"}).select(@"Car.name").where(@"age = 23 OR Car.name like '%s'").where(@{@"age" : @3}).orWhere(@{@"age" : @22}).orWhere(@[@"Car.name" , @"in", @[@"zhangsna", @"sfdf"], @"age", @">=", @23]).first_map(@"Car.name").stringValue;
+    NSString *name = DB.table(@"User").join(@"Car", @{@"Car.id":@"User.car_id"}).select(@"Car.name").where(@"age = 23 OR Car.name like '%s'").where(@{@"age" : @3}).orWhere(@{@"age" : @22}).orWhere(@[@"Car.name" , @"in", @[@"zhangsna", @"sfdf"], @"age", @">=", @23]).first_(@"Car.name").stringValue;
     NSLog(@"%@", name);
     
     NSArray *all = DB.table(@"User as u").leftJoin(@"Car as c", @{@"u.car_id" : @"c.id"}).all();
