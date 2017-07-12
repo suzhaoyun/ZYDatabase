@@ -22,6 +22,7 @@
 #define StrongSelf __strong typeof(weakSelf) strongSelf = weakSelf;
 
 @interface ZYDatabaseTool ()
+
 @property (nonatomic, copy) NSString *tableName;
 @property (nonatomic, weak) FMDatabase * transationDB;
 @property (nonatomic, strong) NSMutableArray *whereConditions;
@@ -40,6 +41,7 @@
 @implementation ZYDatabaseTool
 // 为了懒加载, 只能重写get方法. 但是只读属性如果实现了get方法,就不会自动生成_下划线变量了.需要手动合成
 @synthesize table = _table;
+@synthesize drop = _drop;
 @synthesize insert = _insert;
 @synthesize update = _update;
 @synthesize delete = _delete;
@@ -75,7 +77,7 @@
 
 - (void)createDatabase:(NSString *)databaseName createTableSqlFilePath:(NSString *)filepath
 {
-    _databaseQueue = [FMDatabaseQueue databaseQueueWithPath:[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingString:databaseName]];
+    _databaseQueue = [FMDatabaseQueue databaseQueueWithPath:[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingPathComponent:databaseName]];
     NSString *sql = [NSString stringWithContentsOfFile:filepath encoding:NSUTF8StringEncoding error:NULL];
     NSArray *tableSqls = [sql componentsSeparatedByString:@";"];
     
@@ -104,6 +106,22 @@
 }
 
 #pragma mark - 执行函数(直接执行, 返回ZYDatabaseResult)
+
+- (DeleteType)drop
+{
+    if (_drop == nil) {
+        WeakSelf
+        _drop = ^{
+            StrongSelf
+            if (strongSelf.tableName.length) {
+                return [strongSelf executeUpdate:[NSString stringWithFormat:@"DROP TABLE IF EXISTS %@", strongSelf.tableName]];
+            }
+            ZYLog(@"请先指定要drop的表!!");
+            return NO;
+        };
+    }
+    return _drop;
+}
 
 /** 插入方法 */
 - (InsertUpdateType)insert
@@ -743,18 +761,8 @@
 {
     NSMutableArray *results = [NSMutableArray array];
     
-    
     while ([set next]) {
-        NSMutableDictionary *result = [NSMutableDictionary dictionary];
-        int columnCount = [set columnCount];
-        for (int i = 0; i < columnCount; i++) {
-            NSString *columnName = [set columnNameForIndex:i];
-            id obj = [set objectForColumnIndex:i];
-            if ([obj isKindOfClass:[NSNull class]] || obj == nil) {
-                continue;
-            }
-            [result setObject:obj forKey:columnName];
-        }
+        NSDictionary *result = [set resultDictionary];
         
         if (type) {
             id obj = type(result);

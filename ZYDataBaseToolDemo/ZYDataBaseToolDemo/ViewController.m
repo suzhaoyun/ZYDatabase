@@ -59,8 +59,8 @@
 - (void)testQuery
 {
     
-    NSInteger count = DB.table(@"User").count();
-    
+    NSInteger count = DB.table(@"User").distinct().count();
+    NSLog(@"查到了%zd条数据", count);
     
     NSDictionary *dict = DB.table(@"User").where(@{@"age" : @22}).orWhere(@[@"age", @"<", @"100"]).orderBy(@"name", @"DESC").orderBy(@"name", nil).orderBy(@"age", @"").orderBy(@"name", @"ASC").first();
     NSLog(@"%@", dict);
@@ -109,8 +109,5 @@
     NSArray *all = DB.table(@"User as u").leftJoin(@"Car as c", @{@"u.car_id" : @"c.id"}).all();
     NSLog(@"%@", all);
 }
-
-
-
 
 @end

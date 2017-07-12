@@ -58,6 +58,14 @@ typedef NSInteger (^CountType)();
 
 @property (nonatomic, copy, readonly) OneStringType table;
 
+#pragma mark - 修改表结构语句
+
+/**
+ 删除表
+ DB.table(@"table_name").drop();
+ */
+@property (nonatomic, copy, readonly) DeleteType drop;
+
 #pragma mark - 执行函数(直接执行, 返回ZYDatabaseResult)
 
 /**
