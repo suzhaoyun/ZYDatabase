@@ -34,10 +34,25 @@ NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUse
 [ZYDatabaseHandler shareInstance].table(@"student")
 ```
 为了简化书写，ZYDatabase提供了两种更简单的获取table的方式
-1. 使用宏定义 #define DB [ZYDatabaseHandler sharedInstace]  所以这样即可获取table, DB.table(@"student")
-2. 使用C函数Table(@"")也可以直接获取table
+1. 使用宏定义 #define DB [ZYDatabaseHandler sharedInstace]  所以这样即可获取table, 
+```objc
+DB.table(@"student");
+```
+2. 使用C函数也可以直接获取table
+```objc
+Table(@"student");
+```
 ### DDL 表的操作相关 
-DB.table(@"student").create(@"name text not null, age int default = 0, schoolid varchar(100)");
+```objc
+// 创建一个student表
+BOOL success = DB.table(@"student").create(@"name text not null, age int default = 0, schoolid varchar(100)");
+
+// 删除student表
+BOOL success = DB.table(@"student").drop();
+
+// 修改表
+BOOL success = DB.table(@"student").alter(@"add column test text");
+```
 ### DQL 
 
 ### DML 
