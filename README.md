@@ -71,7 +71,7 @@ DB.table(@"student").orderBy(@"age", @"DESC").all();
 DB.table(@"student").count();
 
 // 分组
-DB.table(@"student").groupBy(@"age").having(@"age > 18").all();
+DB.table(@"student").select(@"age, count(*) as c").groupBy(@"age").having(@"c = 2").all();
 
 // limit语句
 DB.table(@"student").limit(@"0, 2").all();
