@@ -102,7 +102,7 @@ DB.table(@"student").where(@{@"name" : @"张三"}).delete();
 DB.where(@{@"name" : @"张三"}).update(@{@"name" : @"李四"});
 ```
 ## 补充
-另外ZYDatabase中还保留了FMDB多线程操作，事务的操作。下图是ZYDatabase中的结构介绍
+另外ZYDatabase中还保留了FMDB多线程操作，事务的操作。下图是ZYDatabase开发时的思维导图
 
 ![Alt text](http://upload-images.jianshu.io/upload_images/1941597-2f3c6115b55fd5ae.png?imageMogr2/auto-orient/strip)
 一直内部使用，可能潜在很多问题，希望大家多多issues。
