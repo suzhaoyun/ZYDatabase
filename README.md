@@ -66,14 +66,19 @@ DB.table(@"student").where(@[@"name", @"like", @"%芳%"]).orWhere(@{@"age" : @18
 
 // 排序
 DB.table(@"student").orderBy(@"age", @"DESC").all();
+
 // 统计数目
 DB.table(@"student").count();
+
 // 分组
 DB.table(@"student").groupBy(@"age").having(@"age > 18").all();
+
 // limit语句
 DB.table(@"student").limit(@"0, 2").all();
+
 // 多表关联...
 DB.table(@"student as stu").join(@"school as sch", @{@"stu.schoolid":@"sch.schoolid"}).all();
+
 // 自定义数据过滤
 DB.table(@"student").where(@{@"age" : @0}).filtermap(^id(NSDictionary *dict) {
     // 例如可以在这里进行字典转模型
@@ -84,8 +89,18 @@ DB.table(@"student").where(@{@"age" : @0}).filtermap(^id(NSDictionary *dict) {
 }).all();
 ```
 ### 4.DML 增删改 
+// 插入新数据
+DB.table(@"student").insert(@{@"name" : @"张三", @"age" : @22, @"schoolid" : @1});
 
+// 删除
+DB.table(@"student").where(@"name = '张三'").delete();
+DB.table(@"student").where(@[@"name", @"like", @"%张三%"]).delete();
+DB.table(@"student").where(@{@"name" : @"张三"}).delete();
+
+// 更新
+DB.where(@{@"name" : @"张三"}).update(@{@"name" : @"李四"});
 ## 补充
-
+另外ZYDatabase中还保留了FMDB多线程操作，事务的操作。下图是ZYDatabase中的结构介绍
 
 ![Alt text](http://upload-images.jianshu.io/upload_images/1941597-2f3c6115b55fd5ae.png?imageMogr2/auto-orient/strip)
+一直内部使用，可能潜在很多问题，希望大家多多issues。
