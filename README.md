@@ -62,7 +62,7 @@ DB.table(@"student").where(@{@"age" : @0}).first();
 DB.table(@"student").where(@{@"age" : @0}).all();
 
 // 复杂条件 where支持三种参数 具体可查看api说明
-DB.table(@"student").where(@[@"name", @"like", @"%芳%"]).orWhere(@{@"age" : @18}).andWhere(@{@"schoolid = 1").all();
+DB.table(@"student").where(@[@"name", @"like", @"%芳%"]).orWhere(@{@"age" : @18}).andWhere(@{@"school_id = 1").all();
 
 // 排序
 DB.table(@"student").orderBy(@"age", @"DESC").all();
@@ -77,7 +77,7 @@ DB.table(@"student").select(@"age, count(*) as c").groupBy(@"age").having(@"c = 
 DB.table(@"student").limit(@"0, 2").all();
 
 // 多表关联...
-DB.table(@"student as stu").join(@"school as sch", @{@"stu.schoolid":@"sch.schoolid"}).all();
+DB.table(@"student as stu").join(@"school as sch", @{@"stu.school_id":@"sch.school_id"}).all();
 
 // 自定义数据过滤
 DB.table(@"student").where(@{@"age" : @0}).filtermap(^id(NSDictionary *dict) {
@@ -91,7 +91,7 @@ DB.table(@"student").where(@{@"age" : @0}).filtermap(^id(NSDictionary *dict) {
 ### 4.DML 增删改 
 ```objc
 // 插入新数据
-DB.table(@"student").insert(@{@"name" : @"张三", @"age" : @22, @"schoolid" : @1});
+DB.table(@"student").insert(@{@"name" : @"张三", @"age" : @22, @"school_id" : @1});
 
 // 删除
 DB.table(@"student").where(@{@"name" : @"张三"}).delete();
