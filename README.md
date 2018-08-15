@@ -1,5 +1,5 @@
 # 中文介绍
-你还在写生硬sql语句吗？ZYDatabase是一种全新的操作数据库方式,用链式编程的方式数写sql, 增加可读性，简化代码，给你不一样的体验。
+你还在写生硬的SQL语句吗？移动端开发的小白不太懂数据库怎么办？ZYDatabase是一种全新的操作数据库的方式,采用了将SQL语句拆分而用采用链式编程的方式内部拼接SQL, 即增加了可读性，简化了代码，又不脱离SQL语法本质。
 ## 简单演示
 ```objc
 // 原来我们使用FMDB的代码
@@ -21,9 +21,23 @@ DB.table(@"record").where(@{@"userid" : @"123"}).all();
 ```objc
 #import "ZYDatabase.h"
 ```
-## API介绍
+## 简单介绍
+### 数据库的创建
+ZYDatabaseHandler是ZYDatabase的核心类，所有的业务都是这个核心类完成的。[ZYDatabaseHandler shareInstance]即可获取到这个核心类的实现。
+```objc
+// 创建数据库
+NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingString:@"demo.sqlite"];
+[DB createDatabaseWithPath:path];
+```
+数据库的大多数操作都是以table为基础的，所以任何操作的第一步都是先指定要操作的表。handler中即可指定table.
+```objc
+[ZYDatabaseHandler shareInstance].table(@"student")
+```
+为了简化书写，ZYDatabase提供了两种更简单的获取table的方式
+1. 使用宏定义 #define DB [ZYDatabaseHandler sharedInstace]  所以这样即可获取table, DB.table(@"student")
+2. 使用C函数Table(@"")也可以直接获取table
 ### DDL 表的操作相关 
-
+DB.table(@"student").create(@"name text not null, age int default = 0, schoolid varchar(100)");
 ### DQL 
 
 ### DML 
