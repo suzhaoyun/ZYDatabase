@@ -207,6 +207,7 @@ extern ZYDatabaseScheduler * Table(NSString *table);
 
 /**
  可以对查询出的数据进行过滤或自定义
+ return nil则认为该数据被过滤
  */
 @property (nonatomic, copy, readonly) FilterMapType filtermap;
 

@@ -9,7 +9,7 @@
 #import "ViewController.h"
 #import "ZYDatabase.h"
 #import "User.h"
-
+#import <FMDB.h>
 @interface ViewController ()
 
 @end
@@ -39,6 +39,20 @@
 //    [self testGroupBy];
     
 //    [self testJoin];
+    
+    FMDatabase *database = [FMDatabase databaseWithPath:nil];
+
+    // 原来我们使用FMDB
+    FMResultSet *resultSet = [database executeQuery:@"select * from user where userid = ?", @"123"];
+    NSMutableArray *array = [NSMutableArray array];
+    if ([resultSet next]) {
+        NSDictionary *dict = [resultSet resultDictionary];
+        [array addObject:dict];
+    }
+    
+    // 使用ZYDatabase
+    DB.table(@"user").where(@{@"userid" : @"123"}).all();
+    
     
     [DB inDatabase:^{
         DB.table(@"").filtermap(^id(NSDictionary *dict) {
