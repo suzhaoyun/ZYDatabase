@@ -1,7 +1,6 @@
 # 中文介绍
 你还在写生硬sql语句吗？ZYDatabase是一种全新的操作数据库方式,用链式编程的方式数写sql, 增加可读性，简化代码，给你不一样的体验。
-##简单演示
-![这里是图片](https://github.com/suzhaoyun/ZYDatabase/blob/master/readmesource/1534325013824.jpg)
+## 简单演示
 ```objc
 // 原来我们使用FMDB的代码
 FMResultSet *resultSet = [database executeQuery:@"select * from record where userid = ?", @"123"];
