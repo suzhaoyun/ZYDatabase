@@ -22,7 +22,7 @@ DB.table(@"record").where(@{@"userid" : @"123"}).all();
 #import "ZYDatabase.h"
 ```
 ## 简单介绍
-### 数据库的创建
+### 1.数据库的创建
 ZYDatabaseHandler是ZYDatabase的核心类，所有的业务都是这个核心类完成的。[ZYDatabaseHandler shareInstance]即可获取到这个核心类的实现。
 ```objc
 // 创建数据库
@@ -42,7 +42,7 @@ DB.table(@"student");
 ```objc
 Table(@"student");
 ```
-### DDL 表的操作相关 
+### 2.DDL 表的操作相关 
 ```objc
 // 创建一个student表
 BOOL success = DB.table(@"student").create(@"name text not null, age int default = 0, schoolid varchar(100)");
@@ -53,9 +53,37 @@ BOOL success = DB.table(@"student").drop();
 // 修改表
 BOOL success = DB.table(@"student").alter(@"add column test text");
 ```
-### DQL 
+### 3.DQL 查询语句
+```objc
+// 单条查询
+DB.table(@"student").where(@{@"age" : @0}).first();
 
-### DML 
+// 多条查询
+DB.table(@"student").where(@{@"age" : @0}).all();
+
+// 复杂条件 where支持三种参数 具体可查看api说明
+DB.table(@"student").where(@[@"name", @"like", @"%芳%"]).orWhere(@{@"age" : @18}).andWhere(@{@"schoolid":@1}).all();
+
+// 排序
+DB.table(@"student").orderBy(@"age", @"DESC").all();
+// 统计数目
+DB.table(@"student").count();
+// 分组
+DB.table(@"student").groupBy(@"age").having(@"age > 18").all();
+// limit语句
+DB.table(@"student").limit(@"0, 2").all();
+// 多表关联...
+DB.table(@"student as stu").join(@"school as sch", @{@"stu.schoolid":@"sch.schoolid"}).all();
+// 自定义数据过滤
+DB.table(@"student").where(@{@"age" : @0}).filtermap(^id(NSDictionary *dict) {
+    // 例如可以在这里进行字典转模型
+
+    // 也可以把数据过滤掉 return nil即可
+
+    return dict;
+}).all();
+```
+### 4.DML 增删改 
 
 ## 补充
 
