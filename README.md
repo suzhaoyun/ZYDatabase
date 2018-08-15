@@ -89,6 +89,7 @@ DB.table(@"student").where(@{@"age" : @0}).filtermap(^id(NSDictionary *dict) {
 }).all();
 ```
 ### 4.DML 增删改 
+```objc
 // 插入新数据
 DB.table(@"student").insert(@{@"name" : @"张三", @"age" : @22, @"schoolid" : @1});
 
@@ -99,6 +100,7 @@ DB.table(@"student").where(@{@"name" : @"张三"}).delete();
 
 // 更新
 DB.where(@{@"name" : @"张三"}).update(@{@"name" : @"李四"});
+```
 ## 补充
 另外ZYDatabase中还保留了FMDB多线程操作，事务的操作。下图是ZYDatabase中的结构介绍
 
