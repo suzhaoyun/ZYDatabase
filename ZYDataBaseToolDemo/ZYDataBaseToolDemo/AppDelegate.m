@@ -7,7 +7,7 @@
 //
 
 #import "AppDelegate.h"
-#import "ZYDatabase.h"
+#import "ZYDatabaseScheduler.h"
 
 @interface AppDelegate ()
 
@@ -17,8 +17,6 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    
-    [DB createDatabase:@"mytest.sqlite" createTableSqlFilePath:[[NSBundle mainBundle] pathForResource:@"CreateTable.sql" ofType:nil]];
     
     return YES;
 }

@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import "ZYDatabase.h"
+#import "User.h"
 
 @interface ViewController ()
 
@@ -19,6 +20,11 @@
     [super viewDidLoad];
     
     // 是时候开始你的表演了...
+    
+    // 创建数据库
+    NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingString:@"demo.sqlite"];
+    [DB createDatabaseWithPath:path];
+    
     
 //    [self testDelete];
     
@@ -33,6 +39,12 @@
 //    [self testGroupBy];
     
 //    [self testJoin];
+    
+    [DB inDatabase:^{
+        DB.table(@"").filtermap(^id(NSDictionary *dict) {
+            return [dict objectForKey:@"name"];
+        }).all();
+    }];
 }
 
 - (void)testInsert
@@ -65,16 +77,15 @@
     NSDictionary *dict = DB.table(@"User").where(@{@"age" : @22}).orWhere(@[@"age", @"<", @"100"]).orderBy(@"name", @"DESC").orderBy(@"name", nil).orderBy(@"age", @"").orderBy(@"name", @"ASC").first();
     NSLog(@"%@", dict);
     
-    
-    NSInteger age = DB.table(@"User").first_(@"age").integerValue;
+    NSInteger age = [[DB.table(@"User").first() objectForKey:@"age"] integerValue];
     NSLog(@"age : %zd", age);
     
     NSArray *all = DB.table(@"User").all();
     NSLog(@"%@", all);
     
-    NSArray *ages = DB.table(@"User").all_(^id(NSDictionary *dict) {
+    NSArray *ages = DB.table(@"User").filtermap(^id(NSDictionary *dict) {
         return [dict objectForKey:@"age"];
-    });
+    }).all();
     
     NSLog(@"%@", ages);
 }
@@ -95,16 +106,15 @@
     
     NSLog(@"%@", rs);
     
-    DB.table(@"User").distinct().all_(^id(NSDictionary *dict) {
-        return nil;
-    });
-    
+    DB.table(@"User").distinct().filtermap(^NSDictionary *(NSDictionary *dict) {
+        return dict;
+    }).all();
 }
 
 - (void)testJoin
 {
-    NSString *name = DB.table(@"User").join(@"Car", @{@"Car.id":@"User.car_id"}).select(@"Car.name").where(@"age = 23 OR Car.name like '%s'").where(@{@"age" : @3}).orWhere(@{@"age" : @22}).orWhere(@[@"Car.name" , @"in", @[@"zhangsna", @"sfdf"], @"age", @">=", @23]).first_(@"Car.name").stringValue;
-    NSLog(@"%@", name);
+    NSDictionary *dict = DB.table(@"User").join(@"Car", @{@"Car.id":@"User.car_id"}).select(@"Car.name").where(@"age = 23 OR Car.name like '%s'").where(@{@"age" : @3}).orWhere(@{@"age" : @22}).orWhere(@[@"Car.name" , @"in", @[@"zhangsna", @"sfdf"], @"age", @">=", @23]).first();
+    NSLog(@"%@", dict);
     
     NSArray *all = DB.table(@"User as u").leftJoin(@"Car as c", @{@"u.car_id" : @"c.id"}).all();
     NSLog(@"%@", all);

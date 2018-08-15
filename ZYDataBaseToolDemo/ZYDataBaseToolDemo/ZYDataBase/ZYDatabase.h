@@ -2,22 +2,12 @@
 //  ZYDatabase.h
 //  ZYDataBaseToolDemo
 //
-//  Created by ZYSu on 2017/6/24.
-//  Copyright © 2017年 ZYSu. All rights reserved.
-//  
+//  Created by ZYSu on 2018/8/15.
+//  Copyright © 2018年 ZYSu. All rights reserved.
+//
 
 #ifndef ZYDatabase_h
 #define ZYDatabase_h
-
-/**
- 快捷调用工具类
- */
-#ifndef DB
-#define DB [ZYDatabaseTool sharedInstace]
-#endif
-
-#import "ZYDatabaseTool.h"
-#import "ZYDatabaseResult.h"
-#import "FMDB.h"
+#import "ZYDatabaseScheduler.h"
 
 #endif /* ZYDatabase_h */

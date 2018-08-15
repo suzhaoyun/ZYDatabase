@@ -6,10 +6,8 @@
 //  Copyright © 2017年 BeiJingLongBei. All rights reserved.
 //
 
-#import "ZYDatabaseTool.h"
+#import "ZYDatabaseScheduler.h"
 #import "FMDB.h"
-#import "ZYDatabaseType.h"
-#import "ZYDatabaseResult.h"
 
 //处理日志打印在正式环境下的资源消耗问题
 #ifdef DEBUG
@@ -18,16 +16,20 @@
 #define ZYLog(...)
 #endif
 
+#ifndef WeakSelf
 #define WeakSelf __weak typeof(self) weakSelf = self;
+#endif
+
+#ifndef StrongSelf
 #define StrongSelf __strong typeof(weakSelf) strongSelf = weakSelf;
+#endif
 
-@interface ZYDatabaseTool ()
-
+@interface ZYDatabaseScheduler ()
 @property (nonatomic, copy) NSString *tableName;
+@property (nonatomic, strong) FMDatabaseQueue *databaseQueue;
 @property (nonatomic, weak) FMDatabase * transationDB;
 @property (nonatomic, strong) NSMutableArray *whereConditions;
 @property (nonatomic, strong) NSMutableArray *joinConditions;
-@property (nonatomic, strong) ZYDatabaseResult *result;
 @property (nonatomic, assign) BOOL distinctCondition;
 @property (nonatomic, copy) NSString *limitCondition;
 @property (nonatomic, strong) NSString *havingCondition;
@@ -35,13 +37,15 @@
 @property (nonatomic, strong) NSMutableArray *orderByConditions;
 @property (nonatomic, copy) NSString *groupByCondition;
 @property (nonatomic, strong) NSMutableArray *arguments;
-
+@property (nonatomic, copy) FilterMapArgsType filtermapargs;
 @end
 
-@implementation ZYDatabaseTool
+@implementation ZYDatabaseScheduler
 // 为了懒加载, 只能重写get方法. 但是只读属性如果实现了get方法,就不会自动生成_下划线变量了.需要手动合成
 @synthesize table = _table;
+@synthesize create = _create;
 @synthesize drop = _drop;
+@synthesize alter = _alter;
 @synthesize insert = _insert;
 @synthesize update = _update;
 @synthesize delete = _delete;
@@ -49,9 +53,8 @@
 @synthesize andWhere = _andWhere;
 @synthesize orWhere = _orWhere;
 @synthesize first = _first;
-@synthesize first_ = _first_;
 @synthesize all = _all;
-@synthesize all_ = _all_;
+@synthesize filtermap = _filtermap;
 @synthesize limit = _limit;
 @synthesize select = _select;
 @synthesize orderBy = _orderBy;
@@ -65,9 +68,14 @@
 
 #pragma mark - 初始化设置
 
+ZYDatabaseScheduler * Table(NSString *table)
+{
+    return [ZYDatabaseScheduler sharedInstace].table(table);
+}
+
 + (instancetype)sharedInstace
 {
-    static ZYDatabaseTool *_tool;
+    static ZYDatabaseScheduler *_tool;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         _tool = [[self alloc] init];
@@ -75,18 +83,10 @@
     return _tool;
 }
 
-- (void)createDatabase:(NSString *)databaseName createTableSqlFilePath:(NSString *)filepath
+- (void)createDatabaseWithPath:(NSString *)databasePath
 {
-    _databaseQueue = [FMDatabaseQueue databaseQueueWithPath:[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).lastObject stringByAppendingPathComponent:databaseName]];
-    NSString *sql = [NSString stringWithContentsOfFile:filepath encoding:NSUTF8StringEncoding error:NULL];
-    NSArray *tableSqls = [sql componentsSeparatedByString:@";"];
-    
-    [_databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-        for (NSString *tableSql in tableSqls) {
-            NSString *s = [[tableSql stringByReplacingOccurrencesOfString:@"\n" withString:@" "] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            [db executeStatements:[NSString stringWithFormat:@"%@;", s]];
-        }
-    }];
+    NSAssert(databasePath.length>0, @"databasePath不能为null");
+    self.databaseQueue = [FMDatabaseQueue databaseQueueWithPath:databasePath];
 }
 
 #pragma mark - 执行sql前先指定要操作的表格
@@ -105,23 +105,45 @@
     return _table;
 }
 
-#pragma mark - 执行函数(直接执行, 返回ZYDatabaseResult)
+#pragma mark - 表操纵函数(直接执行)
 
-- (DeleteType)drop
+- (VoidType)create
+{
+    if (_create == nil) {
+        WeakSelf
+        _create = ^(NSString *sql){
+            StrongSelf
+            return [strongSelf executeUpdate:[NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (%@);", strongSelf.tableName, sql]];
+        };
+    }
+    return _create;
+}
+
+- (VoidType)drop
 {
     if (_drop == nil) {
         WeakSelf
-        _drop = ^{
+        _drop = ^(NSString *sql){
             StrongSelf
-            if (strongSelf.tableName.length) {
-                return [strongSelf executeUpdate:[NSString stringWithFormat:@"DROP TABLE IF EXISTS %@", strongSelf.tableName]];
-            }
-            ZYLog(@"请先指定要drop的表!!");
-            return NO;
+            return [strongSelf executeUpdate:[NSString stringWithFormat:@"DROP TABLE IF EXISTS %@ %@;", strongSelf.tableName, sql]];
         };
     }
     return _drop;
 }
+
+- (VoidType)alter
+{
+    if (_alter == nil) {
+        WeakSelf
+        _alter = ^(NSString *sql){
+            StrongSelf
+            return [strongSelf executeUpdate:[NSString stringWithFormat:@"ALTER TABLE %@ %@;", strongSelf.tableName, sql]];
+        };
+    }
+    return _alter;
+}
+
+#pragma mark - 执行函数(直接执行)
 
 /** 插入方法 */
 - (InsertUpdateType)insert
@@ -214,7 +236,7 @@
 }
 
 /** 删除方法 */
-- (DeleteType)delete
+- (VoidType)delete
 {
     if (_delete == nil) {
         WeakSelf
@@ -242,6 +264,7 @@
 - (BOOL)executeUpdate:(NSString *)sql
 {
     __block BOOL result;
+    // 如果当前在transactionDB中
     if (self.transationDB) {
         result = [self.transationDB executeUpdate:sql withArgumentsInArray:self.arguments];
     }else{
@@ -375,7 +398,6 @@
         else{
             return NSOrderedSame;
         }
-        
     }];
 }
 
@@ -479,19 +501,6 @@
     return _first;
 }
 
-- (FirstMapType)first_
-{
-    if (_first_ == nil) {
-        WeakSelf
-        _first_ = ^(NSString *column){
-            StrongSelf
-            [strongSelf.result setDict:strongSelf.first() key:column];
-            return strongSelf.result;
-        };
-    }
-    return _first_;
-}
-
 - (MutipleType)all
 {
     if (_all == nil) {
@@ -502,12 +511,12 @@
             __block FMResultSet *set = nil;
             if (strongSelf.transationDB) {
                 set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
-                [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
+                [results addObjectsFromArray:[strongSelf getResult:set]];
                 [set close];
             }else{
                 [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
                     set = [db executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
-                    [results addObjectsFromArray:[strongSelf getResult:set filter:nil]];
+                    [results addObjectsFromArray:[strongSelf getResult:set]];
                     [set close];
                 }];
             }
@@ -517,38 +526,13 @@
     return _all;
 }
 
-- (MutaipleMapType)all_
-{
-    if (_all_ == nil) {
-        WeakSelf
-        _all_ = ^(MutaipleMapArgsType type){
-            StrongSelf
-            NSMutableArray *results = [NSMutableArray array];
-            __block FMResultSet *set = nil;
-            if (strongSelf.transationDB) {
-                set = [strongSelf.transationDB executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
-                [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
-                [set close];
-            }else{
-                [strongSelf.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
-                    set = [db executeQuery:[strongSelf getQuerySql] withArgumentsInArray:self.arguments];
-                    [results addObjectsFromArray:[strongSelf getResult:set filter:type]];
-                    [set close];
-                }];
-            }
-            return results;
-        };
-    }
-    return _all_;
-}
-
 - (CountType)count
 {
     if (_count == nil) {
         WeakSelf
         _count = ^{
             StrongSelf
-            return strongSelf.select(@"count(*) as count").first_(@"count").integerValue;
+            return [[strongSelf.select(@"count(*) as count").first() objectForKey:@"count"] integerValue];
         };
     }
     return _count;
@@ -698,6 +682,19 @@
     return _limit;
 }
 
+- (FilterMapType)filtermap
+{
+    if (_filtermap == nil) {
+        WeakSelf
+        _filtermap = ^(FilterMapArgsType call){
+            StrongSelf
+            strongSelf.filtermapargs = call;
+            return strongSelf;
+        };
+    }
+    return _filtermap;
+}
+
 /** 连接语句 */
 - (JoinType)join
 {
@@ -757,16 +754,18 @@
 
 #pragma mark - 简化方法
 
-- (NSArray *)getResult:(FMResultSet *)set filter:(MutaipleMapArgsType)type
+- (NSArray *)getResult:(FMResultSet *)set
 {
     NSMutableArray *results = [NSMutableArray array];
     
     while ([set next]) {
         NSDictionary *result = [set resultDictionary];
         
-        if (type) {
-            id obj = type(result);
-            NSAssert(obj != nil, @"all_map的结果值不能是nil");
+        if (self.filtermapargs) {
+            id obj = self.filtermapargs(result);
+            if (obj == nil) {
+                continue;
+            }
             [results addObject:obj];
         }else{
             [results addObject:result];
@@ -779,10 +778,49 @@
 
 - (void)inTransaction:(void (^)(BOOL *))block
 {
+    WeakSelf
     [self.databaseQueue inTransaction:^(FMDatabase * _Nonnull db, BOOL * _Nonnull rollback) {
-        self.transationDB = db;
+        StrongSelf
+        // 执行block操作之前 记录transactionDB 防止在执行sql时 重复放入dataBaseQueue
+        strongSelf.transationDB = db;
         block?block(rollback):NULL;
-        self.transationDB = nil;
+        strongSelf.transationDB = nil;
+    }];
+}
+
+- (void)inDatabase:(void (^)(void))block
+{
+    WeakSelf
+    [self.databaseQueue inDatabase:^(FMDatabase * _Nonnull db) {
+        StrongSelf
+        // 执行block操作之前 记录transactionDB 防止在执行sql时 重复放入dataBaseQueue
+        strongSelf.transationDB = db;
+        block?block():NULL;
+        strongSelf.transationDB = nil;
+    }];
+}
+
+- (NSError *)inSavePoint:(void (^)(BOOL *))block
+{
+    WeakSelf
+    return [self.databaseQueue inSavePoint:^(FMDatabase * _Nonnull db, BOOL * _Nonnull rollback) {
+        StrongSelf
+        // 执行block操作之前 记录transactionDB 防止在执行sql时 重复放入dataBaseQueue
+        strongSelf.transationDB = db;
+        block?block(rollback):NULL;
+        strongSelf.transationDB = nil;
+    }];
+}
+
+- (void)inDeferredTransaction:(void (^)(BOOL *))block
+{
+    WeakSelf
+    [self.databaseQueue inDeferredTransaction:^(FMDatabase * _Nonnull db, BOOL * _Nonnull rollback) {
+        StrongSelf
+        // 执行block操作之前 记录transactionDB 防止在执行sql时 重复放入dataBaseQueue
+        strongSelf.transationDB = db;
+        block?block(rollback):NULL;
+        strongSelf.transationDB = nil;
     }];
 }
 
@@ -799,6 +837,7 @@
     self.limitCondition = nil;
     self.selectCondition = nil;
     self.groupByCondition = nil;
+    self.filtermapargs = nil;
 }
 
 #pragma mark - getter
@@ -817,14 +856,6 @@
         _joinConditions = [NSMutableArray array];
     }
     return _joinConditions;
-}
-
-- (ZYDatabaseResult *)result
-{
-    if (_result == nil) {
-        _result = [[ZYDatabaseResult alloc] init];
-    }
-    return _result;
 }
 
 - (NSMutableArray *)orderByConditions
