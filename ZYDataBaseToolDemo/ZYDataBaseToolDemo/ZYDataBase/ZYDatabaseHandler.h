@@ -4,14 +4,13 @@
 //
 //  Created by ZYSu on 2017/6/24.
 //  Copyright © 2017年 BeiJingLongBei. All rights reserved.
-//  仿Laravel框架做的一个面向对象的sql语句api (暂时只支持单数据库)
-//  内部使用FMDatabaseQueue实现, 是保证线程安全的
+//
+//  因为是里面的属性都是lazy加载的所以可读性不太好
 
 #import <Foundation/Foundation.h>
 #import "ZYDatabaseDefines.h"
 
-
-@interface ZYDatabaseScheduler : NSObject
+@interface ZYDatabaseHandler : NSObject
 
 /**
  Sample way of writing
@@ -19,7 +18,7 @@
  like: Table(@"user").select(@"name").first();
        DB.table(@"user").select(@"name").first();
  */
-extern ZYDatabaseScheduler * Table(NSString *table);
+extern ZYDatabaseHandler * Table(NSString *table);
 
 #pragma mark - 初始化设置
 
@@ -45,17 +44,19 @@ extern ZYDatabaseScheduler * Table(NSString *table);
  表的创建会自动拼接括号
  example: DB.table(@"user").create(@"userid text not null, name text not null");
  */
-@property (nonatomic, copy, readonly) VoidType create;
+@property (nonatomic, copy, readonly) DDLType create;
 
 /**
  表的删除
+ example: DB.table(@"user").drop();
  */
 @property (nonatomic, copy, readonly) VoidType drop;
 
 /**
  表结构修改
+ example: DB.table(@"user").alter(@"add column id TEXT NOT NULL");
  */
-@property (nonatomic, copy, readonly) VoidType alter;
+@property (nonatomic, copy, readonly) DDLType alter;
 
 #pragma mark - 执行函数，链条的结束函数，有返回结果
 

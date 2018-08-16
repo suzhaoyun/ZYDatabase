@@ -8,6 +8,7 @@
 
 #ifndef ZYDatabase_h
 #define ZYDatabase_h
-#import "ZYDatabaseScheduler.h"
+
+#import "ZYDatabaseHandler.h"
 
 #endif /* ZYDatabase_h */

@@ -6,10 +6,11 @@
 //  Copyright © 2017年 BeiJingLongBei. All rights reserved.
 //
 
-#import "ZYDatabaseScheduler.h"
+#import "ZYDatabaseHandler.h"
 #import "FMDB.h"
 
 //处理日志打印在正式环境下的资源消耗问题
+
 #ifdef DEBUG
 #define ZYLog(...) NSLog(__VA_ARGS__)
 #else
@@ -24,7 +25,7 @@
 #define StrongSelf __strong typeof(weakSelf) strongSelf = weakSelf;
 #endif
 
-@interface ZYDatabaseScheduler ()
+@interface ZYDatabaseHandler ()
 @property (nonatomic, copy) NSString *tableName;
 @property (nonatomic, strong) FMDatabaseQueue *databaseQueue;
 @property (nonatomic, weak) FMDatabase * transationDB;
@@ -40,7 +41,7 @@
 @property (nonatomic, copy) FilterMapArgsType filtermapargs;
 @end
 
-@implementation ZYDatabaseScheduler
+@implementation ZYDatabaseHandler
 // 为了懒加载, 只能重写get方法. 但是只读属性如果实现了get方法,就不会自动生成_下划线变量了.需要手动合成
 @synthesize table = _table;
 @synthesize create = _create;
@@ -68,14 +69,14 @@
 
 #pragma mark - 初始化设置
 
-ZYDatabaseScheduler * Table(NSString *table)
+ZYDatabaseHandler * Table(NSString *table)
 {
-    return [ZYDatabaseScheduler sharedInstace].table(table);
+    return [ZYDatabaseHandler sharedInstace].table(table);
 }
 
 + (instancetype)sharedInstace
 {
-    static ZYDatabaseScheduler *_tool;
+    static ZYDatabaseHandler *_tool;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         _tool = [[self alloc] init];
@@ -97,9 +98,10 @@ ZYDatabaseScheduler * Table(NSString *table)
         WeakSelf
         _table = ^(NSString *str){
             StrongSelf
+            // 重置条件重新指定表名
             [strongSelf resetSql];
             strongSelf.tableName = str;
-            return weakSelf;
+            return strongSelf;
         };
     }
     return _table;
@@ -107,13 +109,13 @@ ZYDatabaseScheduler * Table(NSString *table)
 
 #pragma mark - 表操纵函数(直接执行)
 
-- (VoidType)create
+- (DDLType)create
 {
     if (_create == nil) {
         WeakSelf
         _create = ^(NSString *sql){
             StrongSelf
-            return [strongSelf executeUpdate:[NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (%@);", strongSelf.tableName, sql]];
+            return [strongSelf executeUpdate:[NSString stringWithFormat:@"%@%@ (%@);", CreateConst, strongSelf.tableName, sql]];
         };
     }
     return _create;
@@ -123,21 +125,21 @@ ZYDatabaseScheduler * Table(NSString *table)
 {
     if (_drop == nil) {
         WeakSelf
-        _drop = ^(NSString *sql){
+        _drop = ^{
             StrongSelf
-            return [strongSelf executeUpdate:[NSString stringWithFormat:@"DROP TABLE IF EXISTS %@ %@;", strongSelf.tableName, sql]];
+            return [strongSelf executeUpdate:[NSString stringWithFormat:@"%@%@;", DropConst, strongSelf.tableName]];
         };
     }
     return _drop;
 }
 
-- (VoidType)alter
+- (DDLType)alter
 {
     if (_alter == nil) {
         WeakSelf
         _alter = ^(NSString *sql){
             StrongSelf
-            return [strongSelf executeUpdate:[NSString stringWithFormat:@"ALTER TABLE %@ %@;", strongSelf.tableName, sql]];
+            return [strongSelf executeUpdate:[NSString stringWithFormat:@"%@%@ %@;", AlterConst, strongSelf.tableName, sql]];
         };
     }
     return _alter;
@@ -154,6 +156,7 @@ ZYDatabaseScheduler * Table(NSString *table)
             StrongSelf
             BOOL result = NO;
             if (args.count > 0) {
+                // 根据参数生成sql
                 NSString *sql = [strongSelf getInsertSqlWithArgs:args];
                 result = [strongSelf executeUpdate:sql];
             }else{
@@ -171,9 +174,10 @@ ZYDatabaseScheduler * Table(NSString *table)
     NSMutableString *sql = [NSMutableString stringWithFormat:@"%@%@ ", InsertConst, self.tableName];
     NSMutableArray *values = [NSMutableArray array];
     NSMutableArray *sqlArgs = [NSMutableArray array];
+    // 对空值进行特殊处理
     [args enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         if ([obj isKindOfClass:[NSNull class]]) {
-            [values addObject:@"NULL"];
+            [values addObject:@"null"];
         }else{
             [values addObject:@"?"];
             [self.arguments addObject:obj];
@@ -213,15 +217,20 @@ ZYDatabaseScheduler * Table(NSString *table)
     for (NSUInteger i = 0; i < keys.count; i++) {
         NSString *key = keys[i];
         NSString *obj = [args objectForKey:key];
+        
+        // 如果是空值
         if ([obj isKindOfClass:[NSNull class]]) {
             [sql appendFormat:@"%@ = null", key];
         }else{
+            // 如果是字符串 需要校验是否已经包含''
             if ([obj isKindOfClass:[NSString class]]) {
-                [sql appendFormat:@"%@ = %@", key, obj];
-            }else{
-                [sql appendFormat:@"%@ = '%@'", key, obj];
+                if ([obj hasPrefix:@"'"] && [obj hasSuffix:@"'"]) {
+                    obj = [obj substringWithRange:NSMakeRange(1, obj.length-1)];
+                }
             }
+            [sql appendFormat:@"%@ = '%@'", key, obj];
         }
+        // 添加分割符号
         if (i < keys.count - 1) {
             [sql appendString:@", "];
         }else{
@@ -360,7 +369,7 @@ ZYDatabaseScheduler * Table(NSString *table)
     
     // 纠正条件顺序  防止第一个语句有多个条件但第一个条件是OR
     [self sortWhereApi];
- 
+    
     [sql appendString:WhereConst];
     
     for (NSUInteger  i = 0; i < self.whereConditions.count; i++) {
@@ -404,7 +413,7 @@ ZYDatabaseScheduler * Table(NSString *table)
 - (NSString *)getWhereCondition:(id)args
 {
     NSMutableString *contentSql = [NSMutableString string];
-
+    
     if ([args isKindOfClass:[NSDictionary class]]) {
         NSDictionary *dict = args;
         NSArray *allkeys = dict.allKeys;
@@ -741,8 +750,7 @@ ZYDatabaseScheduler * Table(NSString *table)
     NSArray *allKeys = args.allKeys;
     for (NSUInteger i = 0; i < allKeys.count; i++) {
         NSString *key = allKeys[i];
-        [sql appendFormat:@"%@ = ? ", key];
-        [self.arguments addObject:[args objectForKey:key]];
+        [sql appendFormat:@"%@ = %@ ", key, [args objectForKey:key]];
         if (i < allKeys.count - 1) {
             [sql appendString:@"AND "];
         }
@@ -824,8 +832,7 @@ ZYDatabaseScheduler * Table(NSString *table)
     }];
 }
 
-#pragma mark - 公共操作
-/** 重置sql */
+/** 重置 */
 - (void)resetSql
 {
     [self.whereConditions removeAllObjects];

@@ -8,6 +8,9 @@
 
 #import "ZYDatabaseDefines.h"
 
+NSString * const CreateConst = @"CREATE TABLE IF NOT EXISTS ";
+NSString * const DropConst = @"DROP TABLE IF EXISTS ";
+NSString * const AlterConst = @"ALTER TABLE ";
 NSString * const WhereConst = @"WHERE ";
 NSString * const UpdateConst = @"UPDATE ";
 NSString * const DeleteConst = @"DELETE FROM ";
